@@ -32,4 +32,20 @@
 3. The client encrypts the new symmetric key with the server's public key and sends it to the server.
 4. The server decrypts and stores the new symmetric key in the secure enclave.
 
+---
 
+# Protocole de communication
+
+
+
+---
+
+# CI
+
+## Fix a lot of errors, by adding Protoc (doc,clippy-stable,clippy-beta)
+
+- name: Install Protoc
+        uses: arduino/setup-protoc@v1
+        with:
+          version: '3.x'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
