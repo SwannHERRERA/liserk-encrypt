@@ -41,14 +41,6 @@ async fn main() -> Result<(), Error> {
     let key = "Hello".to_owned();
     let value = "RawKV".to_owned();
 
-    let _ = client.put(key.to_owned(), value.to_owned()).await?;
-
-    let _ = client.get(key.to_owned()).await?;
-
-    let _ = client.delete(key.to_owned()).await?;
-
-    let _ = client.get(key.to_owned()).await?;
-
     const LIMIT: u32 = 1000;
     client.put("k1".to_owned(), "v1".to_owned()).await?;
     client.put("k2".to_owned(), "v2".to_owned()).await?;
