@@ -5,10 +5,6 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[[bin]]
-name = "client"
-path = "src/client_test.rs"
-
 [dependencies]
 tikv-client = "0.1.0"
 tokio = { version = "1.28", features = ["full"] }
@@ -17,3 +13,4 @@ serde = { version = "1.0.163", features = ["derive"] }
 serde_json = "1.0.96"
 thiserror = "1.0.40"
 aes-gcm-siv = "0.11.1"
+serde_cbor = "0.11.2"

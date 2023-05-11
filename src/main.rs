@@ -3,6 +3,8 @@ use tokio::io::AsyncReadExt;
 use tokio::io::AsyncWriteExt;
 use tokio::net::{TcpListener, TcpStream};
 
+mod message;
+
 #[derive(Debug, thiserror::Error)]
 enum Error {}
 
@@ -25,16 +27,16 @@ async fn on_new_client(socket: &mut TcpStream, _addr: &SocketAddr) -> io::Result
         message.extend_from_slice(&buffer[..n]);
 
         if message.ends_with(&[b'\n']) {
-            on_end_message(&message, socket).await?;
+            on_message(&message, socket).await?;
             break;
         }
     }
     Ok(())
 }
 
-async fn on_end_message(message: &[u8], socket: &mut TcpStream) -> io::Result<()> {
+async fn on_message(message: &[u8], socket: &mut TcpStream) -> io::Result<()> {
     let message_str = String::from_utf8_lossy(message);
-    process_message(&message_str);
+    print_message(&message_str);
 
     let response = "Server received your message\n";
     if let Err(e) = socket.write_all(response.as_bytes()).await {
@@ -43,7 +45,7 @@ async fn on_end_message(message: &[u8], socket: &mut TcpStream) -> io::Result<()
     Ok(())
 }
 
-fn process_message(message: &str) {
+fn print_message(message: &str) {
     println!("Received message: {}", message);
 }
 

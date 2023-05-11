@@ -36,7 +36,22 @@
 
 # Protocole de communication
 
+Premier octet Type de message, 4 bits suivants, taille.
 
+- Message d'initialisation :
+- Version de la communication
+- authetification
+- 
+
+- ErrorResponse
+- CommandComplete
+- ReadyForQuery
+- EmptyQueryResponse
+- QueryResponse
+
+Il faut que je fasse du WAL et de l'event sourcing,
+Il faut que j'ai un streaming Replication protocol
+Pour tout ça j'utilise du CBor
 
 ---
 

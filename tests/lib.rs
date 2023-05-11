@@ -2,7 +2,7 @@ use tokio::io::{self, AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 
 #[tokio::main]
-async fn main() -> io::Result<()> {
+async fn runner() -> io::Result<()> {
     let mut stream = TcpStream::connect("127.0.0.1:5545").await?;
 
     let request = "user@password\n";
