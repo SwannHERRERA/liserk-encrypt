@@ -6,7 +6,7 @@ use tokio::net::{TcpListener, TcpStream};
 #[derive(Debug, thiserror::Error)]
 enum Error {}
 
-async fn on_new_client(mut socket: &mut TcpStream, addr: &SocketAddr) -> io::Result<()> {
+async fn on_new_client(socket: &mut TcpStream, _addr: &SocketAddr) -> io::Result<()> {
     let mut buffer = [0; 1024];
     let mut message = Vec::new();
 
@@ -32,8 +32,8 @@ async fn on_new_client(mut socket: &mut TcpStream, addr: &SocketAddr) -> io::Res
     Ok(())
 }
 
-async fn on_end_message(message: &Vec<u8>, socket: &mut TcpStream) -> io::Result<()> {
-    let message_str = String::from_utf8_lossy(&message);
+async fn on_end_message(message: &[u8], socket: &mut TcpStream) -> io::Result<()> {
+    let message_str = String::from_utf8_lossy(message);
     process_message(&message_str);
 
     let response = "Server received your message\n";
@@ -59,24 +59,5 @@ async fn main() -> io::Result<()> {
                 .await
                 .expect("Error on message");
         });
-    }
-}
-
-#[derive(Debug)]
-struct Authentification {
-    user: String,
-    password: String,
-    database: String,
-    address: SocketAddr,
-}
-
-impl Authentification {
-    fn new(user: String, password: String, database: String, address: SocketAddr) -> Self {
-        Self {
-            user,
-            password,
-            database,
-            address,
-        }
     }
 }
