@@ -1,9 +1,8 @@
 use std::{io, net::SocketAddr};
 use tokio::io::AsyncReadExt;
-use tokio::io::AsyncWriteExt;
 use tokio::net::{TcpListener, TcpStream};
 
-mod message;
+pub mod message;
 use message::{Message, MessageType};
 use tracing::{event, Level};
 
@@ -12,7 +11,7 @@ enum Error {}
 
 async fn on_new_client(socket: &mut TcpStream, _addr: &SocketAddr) -> io::Result<()> {
     let _ = parse_message_from_tcp_stream(socket);
-    Ok(())
+    loop {}
 }
 
 fn parse_message_from_tcp_stream(stream: &mut TcpStream) -> Message {
@@ -34,21 +33,6 @@ fn parse_message_from_tcp_stream(stream: &mut TcpStream) -> Message {
             Message::Hello // TODO fix
         }
     }
-}
-
-async fn on_message(message: &[u8], socket: &mut TcpStream) -> io::Result<()> {
-    let message_str = String::from_utf8_lossy(message);
-    print_message(&message_str);
-
-    let response = "Server received your message\n";
-    if let Err(e) = socket.write_all(response.as_bytes()).await {
-        eprintln!("Error writing to socket: {}", e);
-    }
-    Ok(())
-}
-
-fn print_message(message: &str) {
-    println!("Received message: {}", message);
 }
 
 pub async fn run_app() -> io::Result<()> {
