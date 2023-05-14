@@ -4,34 +4,36 @@ use tokio::io::AsyncWriteExt;
 use tokio::net::{TcpListener, TcpStream};
 
 mod message;
+use message::{Message, MessageType};
+use tracing::{event, Level};
 
 #[derive(Debug, thiserror::Error)]
 enum Error {}
 
 async fn on_new_client(socket: &mut TcpStream, _addr: &SocketAddr) -> io::Result<()> {
-    let mut buffer = [0; 1024];
-    let mut message = Vec::new();
+    let _ = parse_message_from_tcp_stream(socket);
+    Ok(())
+}
 
-    loop {
-        let n = match socket.read(&mut buffer).await {
-            Ok(n) if n == 0 => {
-                break;
-            }
-            Ok(n) => n,
-            Err(e) => {
-                eprintln!("Error reading from socket: {}", e);
-                break;
-            }
-        };
+fn parse_message_from_tcp_stream(stream: &mut TcpStream) -> Message {
+    let mut message_size = [0; 1];
+    let _size_error = stream.read(&mut message_size);
+    let _message_type = MessageType::try_from(message_size[0]);
 
-        message.extend_from_slice(&buffer[..n]);
+    let mut message_size = [0; 4];
+    let _size_error = stream.read(&mut message_size);
+    let decimal_size = u32::from_be_bytes(message_size);
 
-        if message.ends_with(&[b'\n']) {
-            on_message(&message, socket).await?;
-            break;
+    let mut slice = vec![0; decimal_size as usize];
+    let _size_read = stream.read_exact(&mut slice);
+    let message = serde_cbor::from_slice(&slice);
+    match message {
+        Ok(m) => m,
+        Err(err) => {
+            event!(Level::WARN, "Cannot parse message : {:?}", err);
+            Message::Hello // TODO fix
         }
     }
-    Ok(())
 }
 
 async fn on_message(message: &[u8], socket: &mut TcpStream) -> io::Result<()> {

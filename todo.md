@@ -40,9 +40,8 @@ Premier octet Type de message, 4 bits suivants, taille.
 
 - Message d'initialisation :
 - Version de la communication
+- Version de l'athentification
 - authetification
-- 
-
 - ErrorResponse
 - CommandComplete
 - ReadyForQuery
@@ -54,6 +53,7 @@ Je veux faire du post quantic direct dans le Protocol, et gerer moi même la cou
 Je me base quand même sur TLS 1.3 je prends les idées mais au lieu de faire du RSA j'utilise Kyber.
 Pour mes certificats je vais faire un KMS dans un second temps, ce KMS utilisera ZKP pour valider les clefs.
 Donc dans l'idée je vais generer des clef kyber assez rapidement.
+
 
 ## Process de sécurité reseau
 
