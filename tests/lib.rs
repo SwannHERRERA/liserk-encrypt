@@ -2,6 +2,7 @@ use futures::future::join_all;
 use liserk_encrypt::message::MessageType;
 use tokio::io::{self, AsyncWriteExt};
 use tokio::net::TcpStream;
+use tracing::info;
 
 /// Those test need tcp connection with the application I will setup test container later
 
@@ -19,6 +20,7 @@ async fn connect_client() -> io::Result<()> {
     let message_type: u8 = message_type.try_into().expect("uknown message type");
     let request = message.as_bytes();
     let request_size = request.len() as u32;
+    info!("request_size: {}", request_size);
     let mut full_request = Vec::with_capacity(100);
     full_request.push(message_type);
     for octet in request_size.to_be_bytes() {

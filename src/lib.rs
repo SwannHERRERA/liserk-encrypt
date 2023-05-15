@@ -4,7 +4,7 @@ use tokio::net::{TcpListener, TcpStream};
 
 pub mod message;
 use message::{Message, MessageType};
-use tracing::{event, Level};
+use tracing::{event, info, Level};
 
 #[derive(Debug, thiserror::Error)]
 enum Error {}
@@ -22,6 +22,7 @@ fn parse_message_from_tcp_stream(stream: &mut TcpStream) -> Message {
     let mut message_size = [0; 4];
     let _size_error = stream.read(&mut message_size);
     let decimal_size = u32::from_be_bytes(message_size);
+    info!("taille du message: {}", decimal_size);
 
     let mut slice = vec![0; decimal_size as usize];
     let _size_read = stream.read_exact(&mut slice);
