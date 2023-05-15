@@ -1,17 +1,17 @@
-use std::time::Duration;
-
+use futures::future::join_all;
 use liserk_encrypt::message::MessageType;
-use liserk_encrypt::run_app;
 use tokio::io::{self, AsyncWriteExt};
 use tokio::net::TcpStream;
-use tokio::time::sleep;
+
+/// Those test need tcp connection with the application I will setup test container later
 
 #[tokio::test]
-async fn single_client_say_hello_world() -> io::Result<()> {
-    let _handle = tokio::spawn(async {
-        let _ = run_app().await;
-    });
-    sleep(Duration::new(0, 100)).await;
+async fn single_client_say_hello() {
+    let connection = connect_client().await;
+    assert!(connection.is_ok());
+}
+
+async fn connect_client() -> io::Result<()> {
     let mut stream = TcpStream::connect("127.0.0.1:5545").await?;
 
     let message_type = MessageType::Authentification;
@@ -27,4 +27,16 @@ async fn single_client_say_hello_world() -> io::Result<()> {
     let full_request = [full_request.as_slice(), request].concat();
     stream.write_all(&full_request).await?;
     Ok(())
+}
+
+#[tokio::test]
+async fn multiple_client_say_hello() {
+    let mut handles = vec![];
+    for _ in 0..1000 {
+        handles.push(tokio::spawn(async {
+            let connection = connect_client().await;
+            assert!(connection.is_ok());
+        }));
+    }
+    join_all(handles).await;
 }
