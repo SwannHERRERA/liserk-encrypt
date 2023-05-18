@@ -2,7 +2,7 @@ use futures::future::join_all;
 use liserk_encrypt::message::MessageType;
 use tokio::io::{self, AsyncWriteExt};
 use tokio::net::TcpStream;
-use tracing::{info, Level};
+use tracing::{debug, info, Level};
 use tracing_subscriber::FmtSubscriber;
 
 /// Those test need tcp connection with the application I will setup test container later
@@ -29,12 +29,11 @@ async fn connect_client() -> io::Result<()> {
     let request = message.as_bytes();
     let request_length = request.len() as u32;
     let request_length = request_length.to_be_bytes();
-    info!("request: {:?}", request);
-    println!("request_size: {:?}", request_length);
-    let full_request = &[&request_length, request].concat();
-    println!("request: {:?}", full_request);
-    let result = stream.write(full_request);
-    println!("request: {:?}", result);
+    let message_type_as_bytes = [message_type];
+    let full_request = &[&message_type_as_bytes[..], &request_length, request].concat();
+    info!("request: {:?}", full_request);
+    let x = stream.write(full_request).await?;
+    debug!("trace: Result {}", x);
     Ok(())
 }
 
@@ -42,7 +41,7 @@ async fn connect_client() -> io::Result<()> {
 #[ignore = "long and log a lot"]
 async fn multiple_client_say_hello() {
     let mut handles = vec![];
-    for _ in 0..1000 {
+    for _ in 0..100 {
         handles.push(tokio::spawn(async {
             let connection = connect_client().await;
             assert!(connection.is_ok());
