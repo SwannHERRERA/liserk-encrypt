@@ -1,3 +1,4 @@
+use pqc_kyber::*;
 use std::{io, net::SocketAddr};
 use tokio::io::AsyncReadExt;
 use tokio::net::{TcpListener, TcpStream};
@@ -53,4 +54,21 @@ pub async fn run_app() -> io::Result<()> {
                 .expect("Error on message");
         });
     }
+}
+
+fn generate_secret_key() -> Result<(), KyberError> {
+    let mut alice = Ake::new();
+    let mut bob = Ake::new();
+    let mut rng = rand::thread_rng();
+    let alice_keys = keypair(&mut rng);
+    let bob_keys = keypair(&mut rng);
+
+    let client_init = alice.client_init(&bob_keys.public, &mut rng);
+
+    let server_response =
+        bob.server_receive(client_init, &alice_keys.public, &bob_keys.secret, &mut rng)?;
+
+    alice.client_confirm(server_response, &alice_keys.secret)?;
+
+    Ok(())
 }
