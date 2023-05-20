@@ -3,5 +3,6 @@
 members = [
   "shared",
   "server",
+  "certificate_authority",
   "client",
 ]
