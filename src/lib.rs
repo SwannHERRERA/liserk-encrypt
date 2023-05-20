@@ -1,11 +1,12 @@
-use pqc_kyber::*;
+use message::{Message, MessageType};
+use serde::{Deserialize, Serialize};
 use std::{io, net::SocketAddr};
 use tokio::io::AsyncReadExt;
 use tokio::net::{TcpListener, TcpStream};
+use tracing::{debug, info};
+use uuid::Uuid;
 
 pub mod message;
-use message::{Message, MessageType};
-use tracing::{debug, info};
 
 #[derive(Debug, thiserror::Error)]
 enum Error {}
@@ -29,7 +30,7 @@ async fn parse_message_from_tcp_stream(stream: &mut TcpStream) -> Message {
     info!("taille du message: {}", decimal_size);
 
     Message::Hello
-    //
+
     // let mut slice = vec![0; decimal_size as usize];
     // let _size_read = stream.read_exact(&mut slice);
     // let message = serde_cbor::from_slice(&slice);
@@ -40,6 +41,15 @@ async fn parse_message_from_tcp_stream(stream: &mut TcpStream) -> Message {
     //         Message::Hello // TODO fix
     //     }
     // }
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
+struct Authentification {
+    protocol_version: u32,
+    server_public_key: Vec<u8>,
+    session_id: Uuid,
+    cipher_suits: Vec<String>,
+    compression: String,
 }
 
 pub async fn run_app() -> io::Result<()> {
@@ -54,21 +64,4 @@ pub async fn run_app() -> io::Result<()> {
                 .expect("Error on message");
         });
     }
-}
-
-fn generate_secret_key() -> Result<(), KyberError> {
-    let mut alice = Ake::new();
-    let mut bob = Ake::new();
-    let mut rng = rand::thread_rng();
-    let alice_keys = keypair(&mut rng);
-    let bob_keys = keypair(&mut rng);
-
-    let client_init = alice.client_init(&bob_keys.public, &mut rng);
-
-    let server_response =
-        bob.server_receive(client_init, &alice_keys.public, &bob_keys.secret, &mut rng)?;
-
-    alice.client_confirm(server_response, &alice_keys.secret)?;
-
-    Ok(())
 }
