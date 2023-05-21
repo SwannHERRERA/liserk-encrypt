@@ -1,5 +1,6 @@
 #[repr(u8)]
 pub enum MessageType {
+    Setup,
     Authentification,
 }
 
@@ -12,7 +13,8 @@ impl TryFrom<u8> for MessageType {
 
     fn try_from(v: u8) -> Result<Self, Self::Error> {
         match v {
-            0 => Ok(MessageType::Authentification),
+            0 => Ok(MessageType::Setup),
+            1 => Ok(MessageType::Authentification),
             _ => Err(MessageTypeError::default()),
         }
     }

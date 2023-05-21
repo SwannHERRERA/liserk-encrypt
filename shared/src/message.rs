@@ -6,7 +6,8 @@ use crate::message_type::MessageType;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub enum Message {
-    Authentification(ClientAuthentification),
+    ClientSetup(ClientSetupSecureConnection),
+    ClientAuthentification(ClientAuthentication),
     EndOfCommunication,
 }
 
@@ -30,20 +31,21 @@ impl Message {
 impl Display for MessageType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            MessageType::Setup => write!(f, "Setup communcication"),
             MessageType::Authentification => write!(f, "Authentification"),
         }
     }
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
-pub struct ClientAuthentification {
+pub struct ClientSetupSecureConnection {
     protocol_version: String,
     client_public_key: Vec<u8>,
     cipher_suits: Vec<String>,
     compression: String,
 }
 
-impl ClientAuthentification {
+impl ClientSetupSecureConnection {
     pub fn new(public_key: Vec<u8>) -> Self {
         Self {
             protocol_version: String::from("0.1.0"),
@@ -52,4 +54,10 @@ impl ClientAuthentification {
             compression: String::from("0"),
         }
     }
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
+pub struct ClientAuthentication {
+    pub username: String,
+    pub password: String,
 }

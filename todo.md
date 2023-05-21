@@ -86,3 +86,12 @@ Pour tout ça j'utilise du CBor
         with:
           version: '3.x'
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+
+# Client
+
+- Connect (url)
+- Authentication (user, password)
+- Request
+  - Mutation
+  - Query
