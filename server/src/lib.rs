@@ -1,23 +1,25 @@
-use message::{Message, MessageType};
 use serde::{Deserialize, Serialize};
+use shared::message::Message;
+use shared::message_type::MessageType;
 use std::{io, net::SocketAddr};
 use tokio::io::AsyncReadExt;
 use tokio::net::{TcpListener, TcpStream};
-use tracing::{debug, info, warn};
+use tracing::{debug, info};
 use uuid::Uuid;
 
-pub mod message;
-
 #[derive(Debug, thiserror::Error)]
-enum Error {}
-
-async fn on_new_client(socket: &mut TcpStream, _addr: &SocketAddr) -> io::Result<()> {
-    let message = parse_message_from_tcp_stream(socket).await;
-    info!("{:?}", message);
-    loop {}
+enum Error {
+    TokioIoError(#[from] tokio::io::Error),
+    ParsingError(#[from] serde_cbor::Error),
 }
 
-async fn parse_message_from_tcp_stream(stream: &mut TcpStream) -> Message {
+async fn on_new_client(socket: &mut TcpStream, _addr: &SocketAddr) -> Result<(), Error> {
+    let message = parse_message_from_tcp_stream(socket).await?;
+    info!("{:?}", message);
+    Ok(())
+}
+
+async fn parse_message_from_tcp_stream(stream: &mut TcpStream) -> Result<Message, Error> {
     let mut buffer = [0; 1];
     let _ = stream.read(&mut buffer).await;
     let message_type = MessageType::try_from(buffer[0]);
@@ -31,14 +33,7 @@ async fn parse_message_from_tcp_stream(stream: &mut TcpStream) -> Message {
 
     let mut slice = vec![0; decimal_size as usize];
     let _size_read = stream.read_exact(&mut slice);
-    let message = serde_cbor::from_slice(&slice);
-    match message {
-        Ok(m) => m,
-        Err(err) => {
-            warn!("Cannot parse message : {:?}", err);
-            Message::Hello // TODO fix
-        }
-    }
+    serde_cbor::from_slice(&slice)?
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
