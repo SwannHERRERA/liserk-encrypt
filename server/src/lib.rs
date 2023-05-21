@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::{io, net::SocketAddr};
 use tokio::io::AsyncReadExt;
 use tokio::net::{TcpListener, TcpStream};
-use tracing::{debug, info};
+use tracing::{debug, info, warn};
 use uuid::Uuid;
 
 pub mod message;
@@ -29,18 +29,16 @@ async fn parse_message_from_tcp_stream(stream: &mut TcpStream) -> Message {
     let decimal_size = u32::from_be_bytes(message_size);
     info!("taille du message: {}", decimal_size);
 
-    Message::Hello
-
-    // let mut slice = vec![0; decimal_size as usize];
-    // let _size_read = stream.read_exact(&mut slice);
-    // let message = serde_cbor::from_slice(&slice);
-    // match message {
-    //     Ok(m) => m,
-    //     Err(err) => {
-    //         event!(Level::WARN, "Cannot parse message : {:?}", err);
-    //         Message::Hello // TODO fix
-    //     }
-    // }
+    let mut slice = vec![0; decimal_size as usize];
+    let _size_read = stream.read_exact(&mut slice);
+    let message = serde_cbor::from_slice(&slice);
+    match message {
+        Ok(m) => m,
+        Err(err) => {
+            warn!("Cannot parse message : {:?}", err);
+            Message::Hello // TODO fix
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
@@ -59,9 +57,7 @@ pub async fn run_app() -> io::Result<()> {
     loop {
         let (mut socket, addr) = listener.accept().await?;
         tokio::spawn(async move {
-            on_new_client(&mut socket, &addr)
-                .await
-                .expect("Error on message");
+            on_new_client(&mut socket, &addr).await.expect("Error on message");
         });
     }
 }

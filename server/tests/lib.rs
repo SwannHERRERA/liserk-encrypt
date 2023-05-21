@@ -7,10 +7,9 @@ use tracing_subscriber::FmtSubscriber;
 
 /// Those test need tcp connection with the application I will setup test container later
 fn setup() {
-    let subscriber = FmtSubscriber::builder()
-        .with_max_level(Level::TRACE)
-        .finish();
-    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
+    let subscriber = FmtSubscriber::builder().with_max_level(Level::TRACE).finish();
+    tracing::subscriber::set_global_default(subscriber)
+        .expect("setting default subscriber failed");
 }
 
 #[tokio::test]
