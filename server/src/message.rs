@@ -43,7 +43,7 @@ impl TryFrom<u8> for MessageType {
 
     fn try_from(v: u8) -> Result<Self, Self::Error> {
         match v {
-            1 => Ok(MessageType::Authentification),
+            0 => Ok(MessageType::Authentification),
             _ => Err(()),
         }
     }
@@ -54,7 +54,7 @@ impl TryInto<u8> for MessageType {
 
     fn try_into(self) -> Result<u8, Self::Error> {
         match self {
-            MessageType::Authentification => Ok(1),
+            MessageType::Authentification => Ok(0),
             _ => Err(()),
         }
     }

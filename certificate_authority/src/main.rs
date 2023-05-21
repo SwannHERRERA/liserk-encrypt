@@ -23,7 +23,7 @@ pub struct Certificate {
     pub valid_from: DateTime<Utc>,
     pub valid_to: DateTime<Utc>,
     pub serial_number: Uuid,
-    pub algorithm_info: String,
+    pub cipher_suits: Vec<String>,
 }
 
 impl Certificate {
@@ -40,7 +40,7 @@ impl Certificate {
             valid_from: now,
             valid_to: end_of_validity,
             serial_number: Uuid::new_v4(),
-            algorithm_info: String::from("kyber768 | falcon"),
+            cipher_suits: vec![String::from("kyber768"), String::from("falcon")],
         }
     }
 }

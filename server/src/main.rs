@@ -1,4 +1,4 @@
-use liserk_encrypt::run_app;
+use server::run_app;
 use std::io;
 use tracing::{error, Level};
 use tracing_subscriber::FmtSubscriber;
