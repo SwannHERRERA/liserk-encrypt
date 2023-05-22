@@ -34,6 +34,8 @@ jobs:
       matrix:
         toolchain: [stable, beta]
     steps:
+      - name: Setup protoc
+        uses: arduino/setup-protoc@v1.2.0
       - uses: actions/checkout@v3
         with:
           submodules: true
@@ -46,16 +48,18 @@ jobs:
         uses: actions-rs/clippy-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-  # doc:
-  #   runs-on: ubuntu-latest
-  #   name: nightly / doc
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #       with:
-  #         submodules: true
-  #     - name: Install nightly
-  #       uses: dtolnay/rust-toolchain@nightly
-  #     - name: cargo doc
-  #       run: cargo doc --no-deps --all-features
-  #       env:
-  #         RUSTDOCFLAGS: --cfg docsrs
+  doc:
+    runs-on: ubuntu-latest
+    name: nightly / doc
+    steps:
+      - name: Setup protoc
+        uses: arduino/setup-protoc@v1.2.0
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+      - name: Install nightly
+        uses: dtolnay/rust-toolchain@nightly
+      - name: cargo doc
+        run: cargo doc --no-deps --all-features
+        env:
+          RUSTDOCFLAGS: --cfg docsrs

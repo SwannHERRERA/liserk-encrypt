@@ -1,0 +1,6 @@
+[logging]
+level="trace"
+
+[cipher]
+aes_key=[]
+certificates_path=""
