@@ -17,6 +17,8 @@ jobs:
       matrix:
         toolchain: [stable, beta]
     steps:
+      - name: Setup protoc
+        uses: arduino/setup-protoc@v1.2.0
       - uses: actions/checkout@v3
         with:
           submodules: true
@@ -37,6 +39,8 @@ jobs:
     runs-on: ubuntu-latest
     name: ubuntu / stable / minimal-versions
     steps:
+      - name: Setup protoc
+        uses: arduino/setup-protoc@v1.2.0
       - uses: actions/checkout@v3
         with:
           submodules: true
@@ -58,6 +62,8 @@ jobs:
       matrix:
         os: [macos-latest, windows-latest]
     steps:
+      - name: Setup protoc
+        uses: arduino/setup-protoc@v1.2.0
       - uses: actions/checkout@v3
         with:
           submodules: true
@@ -72,6 +78,8 @@ jobs:
     runs-on: ubuntu-latest
     name: ubuntu / stable / coverage
     steps:
+      - name: Setup protoc
+        uses: arduino/setup-protoc@v1.2.0
       - uses: actions/checkout@v3
         with:
           submodules: true
