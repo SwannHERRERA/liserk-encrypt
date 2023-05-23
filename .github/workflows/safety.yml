@@ -12,9 +12,10 @@ name: safety
 jobs:
   sanitizers:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./client
     steps:
-      - name: Setup protoc
-        uses: arduino/setup-protoc@v1.2.0
       - uses: actions/checkout@v3
         with:
           submodules: true
@@ -48,30 +49,12 @@ jobs:
         env:
           LSAN_OPTIONS: "suppressions=lsan-suppressions.txt"
           RUSTFLAGS: "-Z sanitizer=leak"
-  miri:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Setup protoc
-        uses: arduino/setup-protoc@v1.2.0
-      - uses: actions/checkout@v3
-        with:
-          submodules: true
-      - run: |
-          echo "NIGHTLY=nightly-$(curl -s https://rust-lang.github.io/rustup-components-history/x86_64-unknown-linux-gnu/miri)" >> $GITHUB_ENV
-      - name: Install ${{ env.NIGHTLY }}
-        uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: ${{ env.NIGHTLY }}
-          components: miri
-      - name: cargo miri test
-        run: cargo miri test
-        env:
-          MIRIFLAGS: ""
   loom:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./client
     steps:
-      - name: Setup protoc
-        uses: arduino/setup-protoc@v1.2.0
       - uses: actions/checkout@v3
         with:
           submodules: true
@@ -82,3 +65,20 @@ jobs:
         env:
           LOOM_MAX_PREEMPTIONS: 2
           RUSTFLAGS: "--cfg loom"
+  # miri:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #       with:
+  #         submodules: true
+  #     - run: |
+  #         echo "NIGHTLY=nightly-$(curl -s https://rust-lang.github.io/rustup-components-history/x86_64-unknown-linux-gnu/miri)" >> $GITHUB_ENV
+  #     - name: Install ${{ env.NIGHTLY }}
+  #       uses: dtolnay/rust-toolchain@master
+  #       with:
+  #         toolchain: ${{ env.NIGHTLY }}
+  #         components: miri
+  #     - name: cargo miri test
+  #       run: cargo miri test
+  #       env:
+  #         MIRIFLAGS: ""

@@ -10,32 +10,34 @@ concurrency:
   cancel-in-progress: true
 name: ci
 jobs:
-  # fmt:
-  #   runs-on: ubuntu-latest
-  #   name: stable / fmt
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #       with:
-  #         submodules: true
-  #     - name: Install stable
-  #       uses: dtolnay/rust-toolchain@stable
-  #       with:
-  #         components: rustfmt
-  #     - name: cargo fmt --check
-  #       run: cargo fmt --check
+  fmt:
+    runs-on: ubuntu-latest
+    name: stable / fmt
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+      - name: Install stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: cargo fmt --check
+        run: cargo fmt --check
   clippy:
     runs-on: ubuntu-latest
-    name: ${{ matrix.toolchain }} / clippy
+    defaults:
+      run:
+        working-directory: ./${{ matrix.directory }}
+    name: ${{ matrix.toolchain }} / clippy / ${{ matrix.directory }}
     permissions:
       contents: read
       checks: write
     strategy:
       fail-fast: false
       matrix:
-        toolchain: [stable]
+        toolchain: [stable, beta]
+        directory: [client, shared, certificate_authority]
     steps:
-      - name: Setup protoc
-        uses: arduino/setup-protoc@v1.2.0
       - uses: actions/checkout@v3
         with:
           submodules: true
@@ -44,57 +46,21 @@ jobs:
         with:
           toolchain: ${{ matrix.toolchain }}
           components: clippy
-      - name: Install grpcio-compiler
-        uses: baptiste0928/cargo-install@v2
-        with:
-          crate: grpcio-compiler
-      - name: Install LLVM and Clang
-        uses: KyleMayes/install-llvm-action@v1
-        with:
-          version: "10.0"
       - name: cargo clippy
-        uses: actions-rs/clippy-check@v1
+        run: cargo clippy
+  doc:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./client
+    name: nightly / doc
+    steps:
+      - uses: actions/checkout@v3
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-  # doc:
-  #   runs-on: ubuntu-latest
-  #   name: nightly / doc
-  #   steps:
-  #     - name: Setup protoc
-  #       uses: arduino/setup-protoc@v1.2.0
-  #     - uses: actions/checkout@v3
-  #       with:
-  #         submodules: true
-  #     - name: Install nightly
-  #       uses: dtolnay/rust-toolchain@nightly
-  #     - name: cargo doc
-  #       run: cargo doc --no-deps --all-features
-  #       env:
-  #         RUSTDOCFLAGS: --cfg docsrs
-  # required:
-  #   runs-on: ubuntu-latest
-  #   name: ubuntu / ${{ matrix.toolchain }}
-  #   strategy:
-  #     matrix:
-  #       toolchain: [stable]
-  #   steps:
-  #     - name: setup protoc
-  #       uses: arduino/setup-protoc@v1.2.0
-  #     - uses: actions/checkout@v3
-  #       with:
-  #         submodules: true
-  #     - name: install ${{ matrix.toolchain }}
-  #       uses: dtolnay/rust-toolchain@master
-  #       with:
-  #         toolchain: ${{ matrix.toolchain }}
-  #     - name: cargo generate-lockfile
-  #       if: hashfiles('cargo.lock') == ''
-  #       run: cargo generate-lockfile
-  #     # https://twitter.com/jonhoo/status/1571290371124260865
-  #     - name: cargo test --locked
-  #       run: cargo test --locked --all-features --all-targets
-  #     # https://github.com/rust-lang/cargo/issues/6669
-  #     - name: cargo test --doc
-  #       run: cargo test --locked --all-features --doc
-  #
-  #
+          submodules: true
+      - name: Install nightly
+        uses: dtolnay/rust-toolchain@nightly
+      - name: cargo doc
+        run: cargo doc --no-deps --all-features
+        env:
+          RUSTDOCFLAGS: --cfg docsrs

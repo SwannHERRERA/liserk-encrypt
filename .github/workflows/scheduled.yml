@@ -15,10 +15,11 @@ jobs:
   # https://twitter.com/mycoliza/status/1571295690063753218
   nightly:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./client
     name: ubuntu / nightly
     steps:
-      - name: Setup protoc
-        uses: arduino/setup-protoc@v1.2.0
       - uses: actions/checkout@v3
         with:
           submodules: true
@@ -32,14 +33,15 @@ jobs:
   # https://twitter.com/alcuadrado/status/1571291687837732873
   update:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./client
     name: ubuntu / beta / updated
     # There's no point running this if no Cargo.lock was checked in in the
     # first place, since we'd just redo what happened in the regular test job.
     # Unfortunately, hashFiles only works in if on steps, so we reepeat it.
     # if: hashFiles('Cargo.lock') != ''
     steps:
-      - name: Setup protoc
-        uses: arduino/setup-protoc@v1.2.0
       - uses: actions/checkout@v3
         with:
           submodules: true

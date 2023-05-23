@@ -9,7 +9,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 name: check
-jobs:
   fmt:
     runs-on: ubuntu-latest
     name: stable / fmt
@@ -25,7 +24,10 @@ jobs:
         run: cargo fmt --check
   clippy:
     runs-on: ubuntu-latest
-    name: ${{ matrix.toolchain }} / clippy
+    defaults:
+      run:
+        working-directory: ./${{ matrix.directory }}
+    name: ${{ matrix.toolchain }} / clippy / ${{ matrix.directory }}
     permissions:
       contents: read
       checks: write
@@ -33,9 +35,8 @@ jobs:
       fail-fast: false
       matrix:
         toolchain: [stable, beta]
+        directory: [client, shared, certificate_authority]
     steps:
-      - name: Setup protoc
-        uses: arduino/setup-protoc@v1.2.0
       - uses: actions/checkout@v3
         with:
           submodules: true
@@ -45,15 +46,14 @@ jobs:
           toolchain: ${{ matrix.toolchain }}
           components: clippy
       - name: cargo clippy
-        uses: actions-rs/clippy-check@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+        run: cargo clippy
   doc:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./client
     name: nightly / doc
     steps:
-      - name: Setup protoc
-        uses: arduino/setup-protoc@v1.2.0
       - uses: actions/checkout@v3
         with:
           submodules: true
