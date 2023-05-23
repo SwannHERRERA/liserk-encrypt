@@ -48,7 +48,9 @@ impl ConnectedClient {
         let client_authentication = ClientAuthentication { username, password };
         let message = Message::ClientAuthentification(client_authentication);
         self.stream.write(&message.setup_for_network()?).await?;
-        Ok(AuthenticatedClient { stream: self.stream })
+
+        let stream = TcpStream::connect("").await?;
+        Ok(AuthenticatedClient { stream })
     }
 }
 
