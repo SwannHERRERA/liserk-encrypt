@@ -5,7 +5,7 @@ use thiserror::Error;
 #[derive(Debug, Error)]
 #[error("...")]
 pub enum Error {
-    IoError(#[from] io::Error),
-    ConfigError(#[from] ConfigError),
-    SerializationError(#[from] toml::ser::Error),
+    Io(#[from] io::Error),
+    Config(#[from] ConfigError),
+    Serialization(#[from] toml::ser::Error),
 }

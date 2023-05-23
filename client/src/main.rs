@@ -13,6 +13,6 @@ async fn main() -> Result<(), Error> {
     let mut stream = TcpStream::connect("127.0.0.1:5545").await?;
     let message = Message::ClientSetup(first_message);
     let request = message.setup_for_network()?;
-    stream.write(&request).await?;
+    stream.write_all(&request).await?;
     Ok(())
 }

@@ -16,6 +16,7 @@ pub enum Error {
 }
 
 // TODO Build with that
+#[derive(Debug, Default)]
 pub struct UnconnectedClient;
 
 #[derive(Debug)]
@@ -29,10 +30,6 @@ pub struct AuthenticatedClient {
 }
 
 impl UnconnectedClient {
-    pub fn new() -> Self {
-        Self {}
-    }
-
     pub async fn connect(self, url: String) -> Result<ConnectedClient, Error> {
         let stream = TcpStream::connect(url).await?;
         Ok(ConnectedClient { stream })
@@ -47,7 +44,8 @@ impl ConnectedClient {
     ) -> Result<AuthenticatedClient, Error> {
         let client_authentication = ClientAuthentication { username, password };
         let message = Message::ClientAuthentification(client_authentication);
-        self.stream.write(&message.setup_for_network()?).await?;
+        let message = message.setup_for_network()?;
+        self.stream.write_all(&message).await?;
 
         let stream = TcpStream::connect("").await?;
         Ok(AuthenticatedClient { stream })

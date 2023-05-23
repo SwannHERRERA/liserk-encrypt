@@ -72,7 +72,7 @@ fn store_certificate(path: &String, certificate: Certificate) -> Result<(), Erro
     println!("path file: {}", file_path);
     let mut file = File::create(file_path)?;
     let certificate_as_string = toml::to_string(&certificate)?;
-    file.write_all(&certificate_as_string.as_bytes())?;
+    file.write_all(certificate_as_string.as_bytes())?;
     Ok(())
 }
 
