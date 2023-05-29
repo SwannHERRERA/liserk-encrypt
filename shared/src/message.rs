@@ -1,19 +1,25 @@
-use std::fmt::Display;
-
 use serde::{Deserialize, Serialize};
 
-use crate::message_type::MessageType;
+use crate::{message_type::MessageType, query::Query};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub enum Message {
     ClientSetup(ClientSetupSecureConnection),
     ClientAuthentification(ClientAuthentication),
     EndOfCommunication,
+    Insert(Insertion),
+    Query(Query),
 }
 
 impl Message {
     pub fn message_type(&self) -> MessageType {
-        MessageType::Authentification
+        match self {
+            Message::ClientSetup(_) => MessageType::Setup,
+            Message::ClientAuthentification(_) => MessageType::Authentification,
+            Message::EndOfCommunication => MessageType::EndOfCommunication,
+            Message::Insert(_) => MessageType::Insert,
+            Message::Query(_) => MessageType::Query,
+        }
     }
 
     pub fn setup_for_network(&self) -> Result<Vec<u8>, serde_cbor::Error> {
@@ -25,15 +31,6 @@ impl Message {
 
         let message_type_as_bytes = [message_type];
         Ok([&message_type_as_bytes[..], &message_length, &message].concat())
-    }
-}
-
-impl Display for MessageType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            MessageType::Setup => write!(f, "Setup communcication"),
-            MessageType::Authentification => write!(f, "Authentification"),
-        }
     }
 }
 
@@ -60,4 +57,12 @@ impl ClientSetupSecureConnection {
 pub struct ClientAuthentication {
     pub username: String,
     pub password: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
+pub struct Insertion {
+    pub collection: String,
+    pub acl: Vec<String>,
+    pub data: Vec<u8>,
+    pub usecases: Vec<String>,
 }

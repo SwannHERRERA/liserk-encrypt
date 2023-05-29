@@ -1,5 +1,5 @@
 use futures::future::join_all;
-use server::message::MessageType;
+use shared::message_type::MessageType;
 use tokio::io::{self, AsyncWriteExt};
 use tokio::net::TcpStream;
 use tracing::{debug, info, Level};
@@ -13,6 +13,7 @@ fn setup() {
 }
 
 #[tokio::test]
+#[ignore = "need the server to run"]
 async fn single_client_say_hello() {
     setup();
     let connection = connect_client().await;
@@ -24,7 +25,7 @@ async fn connect_client() -> io::Result<()> {
 
     let message_type = MessageType::Authentification;
     let message = "Hello";
-    let message_type: u8 = message_type.try_into().expect("uknown message type");
+    let message_type: u8 = message_type as u8;
     let request = message.as_bytes();
     let request_length = request.len() as u32;
     let request_length = request_length.to_be_bytes();
@@ -37,7 +38,7 @@ async fn connect_client() -> io::Result<()> {
 }
 
 #[tokio::test]
-#[ignore = "long and log a lot"]
+#[ignore = "need the server to run"]
 async fn multiple_client_say_hello() {
     let mut handles = vec![];
     for _ in 0..100 {
