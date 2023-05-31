@@ -38,7 +38,7 @@ jobs:
     name: ubuntu / stable / minimal-versions
     steps:
       - name: Setup protoc
-        uses: arduino/setup-protoc@v1.2.0
+        uses: arduino/setup-protoc@v2.0.0
       - uses: actions/checkout@v3
         with:
           submodules: true
