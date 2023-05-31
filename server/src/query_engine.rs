@@ -1,27 +1,29 @@
-use futures::{stream, StreamExt};
 use shared::query::*;
-use tikv_client::RawClient;
+use tikv_client::{Transaction, TransactionClient};
 use tracing::debug;
 
 use crate::{command::Command, config::TIKV_URL, Error};
 
 pub async fn handle_query(query: Query) -> Result<Command, Error> {
-    let client = RawClient::new(vec![TIKV_URL]).await;
+    let client = TransactionClient::new(vec![TIKV_URL]).await;
     let client = client.expect("failed to connet to tikv");
+    let mut transaction = client.begin_optimistic().await?;
 
     match query {
         Query::Single(single_query) => {
-            handle_single_query(&client, single_query).await?;
+            handle_single_query(&mut transaction, single_query).await?;
         }
         Query::Compound(compound_query) => {
-            handle_compound_query(&client, compound_query).await?;
+            handle_compound_query(&mut transaction, compound_query).await?;
         }
     }
+    transaction.commit().await?;
+    // Todo send in a channel a message
     Ok(Command::Continue)
 }
 
 async fn handle_single_query(
-    client: &RawClient,
+    client: &mut Transaction,
     single_query: SingleQuery,
 ) -> Result<(), Error> {
     let key = format!("{}:{}:usecase", single_query.collection, single_query.usecase);
@@ -51,7 +53,7 @@ fn retrieve_keys_from_query(compound_query: &CompoundQuery) -> Vec<String> {
 }
 
 async fn handle_compound_query(
-    client: &RawClient,
+    client: &mut Transaction,
     compound_query: CompoundQuery,
 ) -> Result<(), Error> {
     let keys = retrieve_keys_from_query(&compound_query);
@@ -62,25 +64,15 @@ async fn handle_compound_query(
             let values = get_kvpair_from_keys(keys, client).await;
 
             for (key, value) in values {
-                match value {
-                    Some(value) => {
-                        println!("Got value for key {}: {:?}", key, value);
-                    }
-                    None => {
-                        println!("No value found for key {}", key);
-                        return Ok(());
-                    }
-                }
+                println!("Got value for key {}: {:?}", key, value);
             }
         }
         QueryType::Or => {
             let values = get_kvpair_from_keys(keys, client).await;
 
             for (key, value) in values {
-                if let Some(value) = value {
-                    println!("Got value for key {}: {:?}", key, value);
-                    return Ok(());
-                }
+                println!("Got value for key {}: {:?}", key, value);
+                return Ok(());
             }
             println!("No values found for keys");
         }
@@ -90,19 +82,17 @@ async fn handle_compound_query(
 
 async fn get_kvpair_from_keys(
     keys: Vec<String>,
-    client: &RawClient,
-) -> Vec<(String, Option<Vec<u8>>)> {
-    let values: Vec<(String, Option<Vec<u8>>)> = stream::iter(keys)
-        .map(|key| {
-            let client = client.clone();
-            async move {
-                let value = client.get(key.clone()).await.unwrap();
-                (key, value)
-            }
+    transaction: &mut Transaction,
+) -> Vec<(String, Vec<u8>)> {
+    transaction
+        .batch_get(keys)
+        .await
+        .expect("batch get failed")
+        .map(|kv_pair| {
+            let key = kv_pair.0;
+            let key_string: String = String::from_utf8_lossy((&key).into()).to_string();
+            let value = kv_pair.1;
+            (key_string, value)
         })
-        .buffer_unordered(num_cpus::get())
         .collect()
-        .await;
-
-    values
 }

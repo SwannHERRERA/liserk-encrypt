@@ -35,55 +35,55 @@ mod tests {
     }
 
     pub async fn insert_some_data(client: &mut AuthenticatedClient) {
-        let _ = client
-            .insert(
-                "users".to_string(),
-                [12, 112, 29, 176].to_vec(),
-                ["read", "write"].to_string_vec(),
-                ["authentification", "authorization"].to_string_vec(),
-            )
-            .await
-            .unwrap();
-
-        let _ = client
-            .insert(
-                "users".to_string(),
-                [12, 1, 2, 178, 76, 23, 145].to_vec(),
-                ["read"].to_string_vec(),
-                ["search"].to_string_vec(),
-            )
-            .await
-            .unwrap();
-
-        let _ = client
-            .insert(
-                "".to_string(),
-                [12, 122, 221, 234, 178, 76, 23, 178, 97, 23, 18, 7, 6, 23, 145].to_vec(),
-                ["read"].to_string_vec(),
-                ["logging"].to_string_vec(),
-            )
-            .await
-            .unwrap();
-
-        let _ = client
-            .insert(
-                "posts".to_string(),
-                [76, 231, 15, 13, 42, 54, 78].to_vec(),
-                [].to_vec(),
-                [].to_vec(),
-            )
-            .await
-            .unwrap();
-
-        let _ = client
-            .insert(
-                "documents".to_string(),
-                [1, 2, 3, 4, 65, 68, 67].to_vec(),
-                ["read", "write", "delete"].to_string_vec(),
-                ["storage", "search"].to_string_vec(),
-            )
-            .await
-            .unwrap();
+        // let _ = client
+        //     .insert(
+        //         "users".to_string(),
+        //         [12, 112, 29, 176].to_vec(),
+        //         ["read", "write"].to_string_vec(),
+        //         ["authentification", "authorization"].to_string_vec(),
+        //     )
+        //     .await
+        //     .unwrap();
+        //
+        // let _ = client
+        //     .insert(
+        //         "users".to_string(),
+        //         [12, 1, 2, 178, 76, 23, 145].to_vec(),
+        //         ["read"].to_string_vec(),
+        //         ["search"].to_string_vec(),
+        //     )
+        //     .await
+        //     .unwrap();
+        //
+        // let _ = client
+        //     .insert(
+        //         "".to_string(),
+        //         [12, 122, 221, 234, 178, 76, 23, 178, 97, 23, 18, 7, 6, 23, 145].to_vec(),
+        //         ["read"].to_string_vec(),
+        //         ["logging"].to_string_vec(),
+        //     )
+        //     .await
+        //     .unwrap();
+        //
+        // let _ = client
+        //     .insert(
+        //         "posts".to_string(),
+        //         [76, 231, 15, 13, 42, 54, 78].to_vec(),
+        //         [].to_vec(),
+        //         [].to_vec(),
+        //     )
+        //     .await
+        //     .unwrap();
+        //
+        // let _ = client
+        //     .insert(
+        //         "documents".to_string(),
+        //         [1, 2, 3, 4, 65, 68, 67].to_vec(),
+        //         ["read", "write", "delete"].to_string_vec(),
+        //         ["storage", "search"].to_string_vec(),
+        //     )
+        //     .await
+        //     .unwrap();
 
         let user_data = vec![1, 2, 3, 4]; // Some binary data for a user
         let product_data = vec![5, 6, 7, 8]; // Some binary data for a product
@@ -167,6 +167,28 @@ mod tests {
             .unwrap();
 
         info!("{:?}", x);
+
+        if let Err(err) = client.terminate_connection().await {
+            error!("{:?}", err);
+        }
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_simple_query() {
+        initialize();
+
+        let client = UnconnectedClient::default();
+        let mut client = connect_and_auth_client(client).await;
+        insert_some_data(&mut client).await;
+
+        let user_query = SingleQueryBuilder::default()
+            .with_collection("users".to_owned())
+            .with_usecase("filter".to_owned())
+            .build();
+
+        let x = client.query(Query::Single(user_query)).await;
+        info!("query result {:?}", x);
 
         if let Err(err) = client.terminate_connection().await {
             error!("{:?}", err);
