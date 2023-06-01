@@ -2,7 +2,7 @@
 #[cfg(test)]
 mod tests {
     use serial_test::serial;
-    use std::sync::Once;
+    use std::{assert, sync::Once};
 
     use shared::query::{CompoundQueryBuilder, Query, QueryType, SingleQueryBuilder};
     use tracing::{error, info, Level};
@@ -10,6 +10,7 @@ mod tests {
 
     use client::{AuthenticatedClient, UnconnectedClient};
     use server::BINDED_URL_PORT;
+    use shared::message::Message;
 
     pub const USERNAME: &str = "Bob";
     pub const PASSWORD: &str = "Pomme";
@@ -163,10 +164,10 @@ mod tests {
                 [].to_vec(),
                 ["Tomate"].to_string_vec(),
             )
-            .await
-            .unwrap();
+            .await;
 
         info!("{:?}", x);
+        assert!(x.is_ok());
 
         if let Err(err) = client.terminate_connection().await {
             error!("{:?}", err);
@@ -180,7 +181,13 @@ mod tests {
 
         let client = UnconnectedClient::default();
         let mut client = connect_and_auth_client(client).await;
-        insert_some_data(&mut client).await;
+
+        let user_data = vec![122, 122, 122, 122, 211]; // Some binary data for a user
+
+        let _inserted_id = client
+            .insert("users".to_string(), user_data, vec![], ["filter"].to_string_vec())
+            .await
+            .unwrap();
 
         let user_query = SingleQueryBuilder::default()
             .with_collection("users".to_owned())
@@ -188,6 +195,7 @@ mod tests {
             .build();
 
         let x = client.query(Query::Single(user_query)).await;
+        assert!(x.is_ok());
         info!("query result {:?}", x);
 
         if let Err(err) = client.terminate_connection().await {
@@ -232,7 +240,75 @@ mod tests {
             .build();
 
         let x = client.query(Query::Compound(main_query)).await;
+        assert!(x.is_ok());
         info!("query result {:?}", x);
+
+        if let Err(err) = client.terminate_connection().await {
+            error!("{:?}", err);
+        }
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_get_by_id() {
+        initialize();
+
+        let client = UnconnectedClient::default();
+        let mut client = connect_and_auth_client(client).await;
+
+        let user_data = vec![212]; // Some binary data for a user
+
+        let inserted_id = client
+            .insert("users".to_string(), user_data, vec![], ["filter"].to_string_vec())
+            .await
+            .unwrap();
+
+        let query = Query::GetById { id: inserted_id, collection: "users".to_string() };
+        let result = client.query(query).await.unwrap();
+        info!("query result {:?}", result);
+        match result {
+            Message::SingleValueResponse { data } => {
+                assert_eq!(data.unwrap()[0], 212);
+            }
+            _ => assert!(false),
+        }
+
+        if let Err(err) = client.terminate_connection().await {
+            error!("{:?}", err);
+        }
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_get_by_ids() {
+        initialize();
+
+        let client = UnconnectedClient::default();
+        let mut client = connect_and_auth_client(client).await;
+
+        let inserted_id_1 = client
+            .insert("users".to_string(), vec![1], vec![], ["filter"].to_string_vec())
+            .await
+            .unwrap();
+        let inserted_id_2 = client
+            .insert("users".to_string(), vec![2], vec![], ["filter"].to_string_vec())
+            .await
+            .unwrap();
+        let inserted_id_3 = client
+            .insert("users".to_string(), vec![3], vec![], ["filter"].to_string_vec())
+            .await
+            .unwrap();
+        let inserted_id_4 = client
+            .insert("users".to_string(), vec![4], vec![], ["filter"].to_string_vec())
+            .await
+            .unwrap();
+
+        let query = Query::GetByIds {
+            ids: vec![inserted_id_1, inserted_id_2, inserted_id_3, inserted_id_4],
+            collection: "users".to_string(),
+        };
+        let result = client.query(query).await.unwrap();
+        info!("query result {:?}", result);
 
         if let Err(err) = client.terminate_connection().await {
             error!("{:?}", err);

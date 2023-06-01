@@ -12,6 +12,7 @@ pub enum MessageType {
     InsertResponse,
     Query,
     QueryResponse,
+    SingleValueResponse,
     EndOfCommunication,
     CloseCommunication,
 }
@@ -25,6 +26,7 @@ impl Display for MessageType {
             MessageType::InsertResponse => write!(f, "InsertResponse"),
             MessageType::Query => write!(f, "Query"),
             MessageType::QueryResponse => write!(f, "QueryResponse"),
+            MessageType::SingleValueResponse => write!(f, "SingleValueResponse"),
             MessageType::EndOfCommunication => write!(f, "EndOfCommunication"),
             MessageType::CloseCommunication => write!(f, "CloseCommunication"),
         }
@@ -63,6 +65,10 @@ impl<'de> Deserialize<'de> for MessageType {
             return Ok(MessageType::QueryResponse);
         }
 
+        if s == "SingleValueResponse" {
+            return Ok(MessageType::SingleValueResponse);
+        }
+
         if s == "EndOfCommunication" {
             return Ok(MessageType::EndOfCommunication);
         }
@@ -89,8 +95,9 @@ impl TryFrom<u8> for MessageType {
             3 => Ok(MessageType::InsertResponse),
             4 => Ok(MessageType::Query),
             5 => Ok(MessageType::QueryResponse),
-            6 => Ok(MessageType::EndOfCommunication),
-            7 => Ok(MessageType::CloseCommunication),
+            6 => Ok(MessageType::QueryResponse),
+            7 => Ok(MessageType::EndOfCommunication),
+            8 => Ok(MessageType::CloseCommunication),
             _ => Err(MessageTypeError::default()),
         }
     }

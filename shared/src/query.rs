@@ -12,6 +12,8 @@ pub enum QueryType {
 pub enum Query {
     Single(SingleQuery),
     Compound(CompoundQuery),
+    GetById { id: String, collection: String },
+    GetByIds { ids: Vec<String>, collection: String },
 }
 
 /// Represents a single query on a collection for a given use case.

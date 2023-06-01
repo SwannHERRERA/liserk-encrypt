@@ -14,11 +14,12 @@ pub async fn parse_message(message: Message, tx: Sender<Message>) -> Command {
     match message {
         Message::ClientSetup(param) => parse_client_setup(param),
         Message::ClientAuthentification(param) => parse_authentification(param),
-        Message::EndOfCommunication => end_communication(tx).await,
         Message::Insert(param) => insert(param, tx).await,
         Message::Query(param) => handle_query(param, tx).await,
+        Message::EndOfCommunication => end_communication(tx).await,
         Message::InsertResponse { .. } => unreachable!(),
         Message::QueryResponse { .. } => unreachable!(),
+        Message::SingleValueResponse { .. } => unreachable!(),
         Message::CloseCommunication => unreachable!(),
     }
 }

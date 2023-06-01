@@ -20,7 +20,6 @@ pub enum Error {
     MessageTypeError(#[from] MessageTypeError),
 }
 
-// TODO Build with that
 #[derive(Debug, Default)]
 pub struct UnconnectedClient;
 
@@ -86,22 +85,29 @@ impl AuthenticatedClient {
         data: Vec<u8>,
         acl: Vec<String>,
         usecases: Vec<String>,
-    ) -> Result<(), Error> {
+    ) -> Result<String, Error> {
         let message = Message::Insert(Insertion { acl, collection, data, usecases });
         let message = message.setup_for_network()?;
         self.write.write_all(&message).await?;
         let message = parse_message_from_tcp_stream(&mut self.read).await?;
         info!("message: {:?}", message);
-        Ok(())
+        match message {
+            Message::InsertResponse { inserted_id } => Ok(inserted_id),
+            _ => Err(Error::MessageTypeError(MessageTypeError::default())),
+        }
     }
 
-    pub async fn query(&mut self, query: Query) -> Result<(), Error> {
+    pub async fn query(&mut self, query: Query) -> Result<Message, Error> {
         let message = Message::Query(query);
         let message = message.setup_for_network()?;
         self.write.write_all(&message).await?;
         let message = parse_message_from_tcp_stream(&mut self.read).await?;
         info!("message: {:?}", message);
-        Ok(())
+        match message {
+            Message::QueryResponse { .. } => Ok(message),
+            Message::SingleValueResponse { .. } => Ok(message),
+            _ => Err(Error::MessageTypeError(MessageTypeError::default())),
+        }
     }
 }
 

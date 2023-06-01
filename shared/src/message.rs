@@ -10,8 +10,9 @@ pub enum Message {
     InsertResponse { inserted_id: String },
     Query(Query),
     QueryResponse { data: Vec<Vec<u8>> },
+    SingleValueResponse { data: Option<Vec<u8>> },
     EndOfCommunication,
-    CloseCommunication, // THis is probably a bad idea
+    CloseCommunication, // This is probably a bad idea
 }
 
 impl Message {
@@ -23,6 +24,7 @@ impl Message {
             Message::InsertResponse { .. } => MessageType::InsertResponse,
             Message::Query(_) => MessageType::Query,
             Message::QueryResponse { .. } => MessageType::QueryResponse,
+            Message::SingleValueResponse { .. } => MessageType::SingleValueResponse,
             Message::EndOfCommunication => MessageType::EndOfCommunication,
             Message::CloseCommunication => MessageType::CloseCommunication,
         }

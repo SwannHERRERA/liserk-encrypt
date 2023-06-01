@@ -2,7 +2,7 @@ use async_channel::Sender;
 use rayon::prelude::*;
 use shared::{message::Message, query::*};
 use tikv_client::{KvPair, Transaction, TransactionClient};
-use tracing::{debug, info};
+use tracing::{debug, error, info};
 
 use crate::{command::Command, config::TIKV_URL, Error};
 
@@ -10,19 +10,29 @@ pub async fn handle_query(query: Query, tx: Sender<Message>) -> Result<Command, 
     let client = TransactionClient::new(vec![TIKV_URL]).await;
     let client = client.expect("failed to connet to tikv");
     let mut transaction = client.begin_optimistic().await?;
+    let message_converter = MessageConverter::default();
 
-    let data = match query {
+    let message = match query {
         Query::Single(single_query) => {
-            handle_single_query(&mut transaction, single_query).await?
+            let data = handle_single_query(&mut transaction, single_query).await?;
+            message_converter.convert_to_message(data)
         }
         Query::Compound(compound_query) => {
-            handle_compound_query(&mut transaction, compound_query).await?
+            let data = handle_compound_query(&mut transaction, compound_query).await?;
+            message_converter.convert_to_message(data)
         }
+        Query::GetById { id, collection } => {
+            let data = get_by_id(&mut transaction, id, collection).await?;
+            Message::SingleValueResponse { data }
+        }
+        Query::GetByIds { ids, collection } => todo!(),
     };
     transaction.commit().await?;
 
-    info!("data found {:?}", data);
-    tx.send(MessageConverter::default().convert_to_message(data));
+    info!("data found {:?}", message);
+    if let Err(err) = tx.send(message).await {
+        error!("error while sending QueryResponse: {:?}", err);
+    }
     // Todo send in a channel a message Ok(Command::Continue)
     Ok(Command::Continue)
 }
@@ -41,6 +51,15 @@ trait TokioSender {
 struct MessageConverter {}
 
 impl TokioSender for MessageConverter {}
+
+async fn get_by_id(
+    client: &mut Transaction,
+    id: String,
+    collection: String,
+) -> Result<Option<Vec<u8>>, Error> {
+    let key = format!("{}:{}", collection, id);
+    Ok(client.get(key).await?)
+}
 
 async fn handle_single_query(
     client: &mut Transaction,
