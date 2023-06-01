@@ -13,6 +13,10 @@ pub enum MessageType {
     Query,
     QueryResponse,
     SingleValueResponse,
+    Update,
+    UpdateResponse,
+    Delete,
+    DeleteResult,
     EndOfCommunication,
     CloseCommunication,
 }
@@ -27,6 +31,10 @@ impl Display for MessageType {
             MessageType::Query => write!(f, "Query"),
             MessageType::QueryResponse => write!(f, "QueryResponse"),
             MessageType::SingleValueResponse => write!(f, "SingleValueResponse"),
+            MessageType::Update => write!(f, "Update"),
+            MessageType::UpdateResponse => write!(f, "UpdateResponse"),
+            MessageType::Delete => write!(f, "Delete"),
+            MessageType::DeleteResult => write!(f, "DeleteResult"),
             MessageType::EndOfCommunication => write!(f, "EndOfCommunication"),
             MessageType::CloseCommunication => write!(f, "CloseCommunication"),
         }
@@ -69,6 +77,22 @@ impl<'de> Deserialize<'de> for MessageType {
             return Ok(MessageType::SingleValueResponse);
         }
 
+        if s == "Update" {
+            return Ok(MessageType::Update);
+        }
+
+        if s == "UpdateResponse" {
+            return Ok(MessageType::UpdateResponse);
+        }
+
+        if s == "Delete" {
+            return Ok(MessageType::Delete);
+        }
+
+        if s == "DeleteResult" {
+            return Ok(MessageType::DeleteResult);
+        }
+
         if s == "EndOfCommunication" {
             return Ok(MessageType::EndOfCommunication);
         }
@@ -95,9 +119,13 @@ impl TryFrom<u8> for MessageType {
             3 => Ok(MessageType::InsertResponse),
             4 => Ok(MessageType::Query),
             5 => Ok(MessageType::QueryResponse),
-            6 => Ok(MessageType::QueryResponse),
-            7 => Ok(MessageType::EndOfCommunication),
-            8 => Ok(MessageType::CloseCommunication),
+            6 => Ok(MessageType::SingleValueResponse),
+            7 => Ok(MessageType::Update),
+            8 => Ok(MessageType::UpdateResponse),
+            9 => Ok(MessageType::Delete),
+            10 => Ok(MessageType::DeleteResult),
+            11 => Ok(MessageType::EndOfCommunication),
+            12 => Ok(MessageType::CloseCommunication),
             _ => Err(MessageTypeError::default()),
         }
     }

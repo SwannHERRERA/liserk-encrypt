@@ -1,6 +1,9 @@
 use config::ConfigError;
 use shared::{
-    message::{ClientAuthentication, ClientSetupSecureConnection, Insertion, Message},
+    message::{
+        ClientAuthentication, ClientSetupSecureConnection, Delete, Insertion, Message,
+        Update,
+    },
     message_type::{MessageType, MessageTypeError},
     query::Query,
 };
@@ -106,6 +109,42 @@ impl AuthenticatedClient {
         match message {
             Message::QueryResponse { .. } => Ok(message),
             Message::SingleValueResponse { .. } => Ok(message),
+            _ => Err(Error::MessageTypeError(MessageTypeError::default())),
+        }
+    }
+
+    pub async fn modify(
+        &mut self,
+        id: String,
+        collection: String,
+        new_value: Vec<u8>,
+    ) -> Result<Message, Error> {
+        let update = Update { collection, id, new_value };
+        let message = Message::Update(update);
+        let message = message.setup_for_network()?;
+        self.write.write_all(&message).await?;
+        let message = parse_message_from_tcp_stream(&mut self.read).await?;
+
+        info!("message: {:?}", message);
+        match message {
+            Message::UpdateResponse { .. } => Ok(message),
+            _ => Err(Error::MessageTypeError(MessageTypeError::default())),
+        }
+    }
+    pub async fn delete(
+        &mut self,
+        id: String,
+        collection: String,
+    ) -> Result<Message, Error> {
+        let delete = Delete { collection, id };
+        let message = Message::Delete(delete);
+        let message = message.setup_for_network()?;
+        self.write.write_all(&message).await?;
+        let message = parse_message_from_tcp_stream(&mut self.read).await?;
+
+        info!("message: {:?}", message);
+        match message {
+            Message::DeleteResult(_) => Ok(message),
             _ => Err(Error::MessageTypeError(MessageTypeError::default())),
         }
     }

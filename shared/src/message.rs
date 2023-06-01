@@ -1,6 +1,5 @@
-use serde::{Deserialize, Serialize};
-
 use crate::{message_type::MessageType, query::Query};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub enum Message {
@@ -11,6 +10,10 @@ pub enum Message {
     Query(Query),
     QueryResponse { data: Vec<Vec<u8>> },
     SingleValueResponse { data: Option<Vec<u8>> },
+    Update(Update),
+    UpdateResponse { status: UpdateStatus },
+    Delete(Delete),
+    DeleteResult(bool),
     EndOfCommunication,
     CloseCommunication, // This is probably a bad idea
 }
@@ -25,6 +28,10 @@ impl Message {
             Message::Query(_) => MessageType::Query,
             Message::QueryResponse { .. } => MessageType::QueryResponse,
             Message::SingleValueResponse { .. } => MessageType::SingleValueResponse,
+            Message::Update { .. } => MessageType::Update,
+            Message::UpdateResponse { .. } => MessageType::UpdateResponse,
+            Message::Delete(_) => MessageType::Delete,
+            Message::DeleteResult(_) => MessageType::DeleteResult,
             Message::EndOfCommunication => MessageType::EndOfCommunication,
             Message::CloseCommunication => MessageType::CloseCommunication,
         }
@@ -68,9 +75,29 @@ pub struct ClientAuthentication {
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
+pub struct Update {
+    pub collection: String,
+    pub id: String,
+    pub new_value: Vec<u8>,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
+pub enum UpdateStatus {
+    Success,
+    Failure,
+    KeyNotFound,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct Insertion {
     pub collection: String,
     pub acl: Vec<String>,
     pub data: Vec<u8>,
     pub usecases: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
+pub struct Delete {
+    pub collection: String,
+    pub id: String,
 }

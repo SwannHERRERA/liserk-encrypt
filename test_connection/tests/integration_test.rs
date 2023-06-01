@@ -11,6 +11,7 @@ mod tests {
     use client::{AuthenticatedClient, UnconnectedClient};
     use server::BINDED_URL_PORT;
     use shared::message::Message;
+    use shared::message::UpdateStatus;
 
     pub const USERNAME: &str = "Bob";
     pub const PASSWORD: &str = "Pomme";
@@ -168,6 +169,11 @@ mod tests {
 
         info!("{:?}", x);
         assert!(x.is_ok());
+        let result = client.delete(x.unwrap(), "table".into()).await.unwrap();
+        match result {
+            Message::DeleteResult(status) => assert!(status),
+            _ => assert!(false),
+        };
 
         if let Err(err) = client.terminate_connection().await {
             error!("{:?}", err);
@@ -313,6 +319,62 @@ mod tests {
         match result {
             Message::QueryResponse { data } => {
                 assert_eq!(data.len(), 4);
+            }
+            _ => assert!(false),
+        }
+
+        if let Err(err) = client.terminate_connection().await {
+            error!("{:?}", err);
+        }
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_modify_data() {
+        initialize();
+
+        let client = UnconnectedClient::default();
+        let mut client = connect_and_auth_client(client).await;
+
+        let inserted_id = client
+            .insert("users".to_string(), vec![1], vec![], ["users"].to_string_vec())
+            .await
+            .unwrap();
+        client
+            .modify(inserted_id.clone(), "users".into(), vec![2])
+            .await
+            .unwrap();
+
+        let query = Query::GetById { id: inserted_id, collection: "users".to_string() };
+        let result = client.query(query).await.unwrap();
+        info!("query result {:?}", result);
+        match result {
+            Message::SingleValueResponse { data } => {
+                assert_eq!(data.unwrap()[0], 2);
+            }
+            _ => assert!(false),
+        }
+
+        if let Err(err) = client.terminate_connection().await {
+            error!("{:?}", err);
+        }
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_modify_non_existing_data() {
+        initialize();
+
+        let client = UnconnectedClient::default();
+        let mut client = connect_and_auth_client(client).await;
+
+        let result = client
+            .modify("xxxxxxx".to_string(), "users".into(), vec![2])
+            .await
+            .unwrap();
+        match result {
+            Message::UpdateResponse { status } => {
+                assert_eq!(status, UpdateStatus::KeyNotFound);
             }
             _ => assert!(false),
         }
