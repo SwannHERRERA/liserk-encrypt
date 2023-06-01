@@ -3,7 +3,8 @@ use shared::message::Message;
 use shared::message_type::MessageType;
 use std::fmt::Display;
 use std::{io, net::SocketAddr};
-use tokio::io::AsyncReadExt;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::net::tcp::OwnedReadHalf;
 use tokio::net::{TcpListener, TcpStream};
 use tracing::{debug, info, trace};
 use uuid::Uuid;
@@ -36,10 +37,20 @@ impl Display for Error {
     }
 }
 
-async fn on_new_client(socket: &mut TcpStream, _addr: &SocketAddr) -> Result<(), Error> {
+async fn on_new_client(socket: TcpStream, _addr: &SocketAddr) -> Result<(), Error> {
+    let (tx, rx) = async_channel::unbounded::<Message>();
+    let (mut read, mut write) = socket.into_split();
+
+    tokio::spawn(async move {
+        loop {
+            let message = rx.recv().await;
+            let message = message.unwrap().setup_for_network().unwrap();
+            write.write(&message).await.unwrap();
+        }
+    });
     loop {
-        let message = parse_message_from_tcp_stream(socket).await?;
-        let command = parse_message(message, socket).await;
+        let message = parse_message_from_tcp_stream(&mut read).await?;
+        let command = parse_message(message, tx.clone()).await;
         info!("message parsing end communication: {:?}", command);
         if command == Command::Exit {
             break;
@@ -48,7 +59,9 @@ async fn on_new_client(socket: &mut TcpStream, _addr: &SocketAddr) -> Result<(),
     Ok(())
 }
 
-async fn parse_message_from_tcp_stream(stream: &mut TcpStream) -> Result<Message, Error> {
+async fn parse_message_from_tcp_stream(
+    stream: &mut OwnedReadHalf,
+) -> Result<Message, Error> {
     let mut buffer = [0; 1];
     let _ = stream.read(&mut buffer).await;
     let message_type = MessageType::try_from(buffer[0]);
@@ -81,9 +94,9 @@ pub async fn run_app() -> io::Result<()> {
     info!("Server started, listening on {}", BINDED_URL_PORT);
 
     loop {
-        let (mut socket, addr) = listener.accept().await?;
+        let (socket, addr) = listener.accept().await?;
         tokio::spawn(async move {
-            match on_new_client(&mut socket, &addr).await {
+            match on_new_client(socket, &addr).await {
                 Ok(_) => println!("c'est ok"),
                 Err(err) => eprintln!("err: {}", err),
             };

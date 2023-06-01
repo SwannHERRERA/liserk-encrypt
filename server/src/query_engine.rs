@@ -1,10 +1,11 @@
-use shared::query::*;
+use async_channel::Sender;
+use shared::{message::Message, query::*};
 use tikv_client::{KvPair, Transaction, TransactionClient};
 use tracing::{debug, info};
 
 use crate::{command::Command, config::TIKV_URL, Error};
 
-pub async fn handle_query(query: Query) -> Result<Command, Error> {
+pub async fn handle_query(query: Query, tx: Sender<Message>) -> Result<Command, Error> {
     let client = TransactionClient::new(vec![TIKV_URL]).await;
     let client = client.expect("failed to connet to tikv");
     let mut transaction = client.begin_optimistic().await?;
