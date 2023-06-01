@@ -61,14 +61,14 @@ async fn handle_compound_query(
 
     match compound_query.query_type {
         QueryType::And => {
-            let values = get_kvpair_from_keys(keys, client).await;
+            let values = get_kvpair_from_keys(keys, client).await?;
 
             for (key, value) in values {
                 println!("Got value for key {}: {:?}", key, value);
             }
         }
         QueryType::Or => {
-            let values = get_kvpair_from_keys(keys, client).await;
+            let values = get_kvpair_from_keys(keys, client).await?;
 
             for (key, value) in values {
                 println!("Got value for key {}: {:?}", key, value);
@@ -83,16 +83,15 @@ async fn handle_compound_query(
 async fn get_kvpair_from_keys(
     keys: Vec<String>,
     transaction: &mut Transaction,
-) -> Vec<(String, Vec<u8>)> {
-    transaction
-        .batch_get(keys)
-        .await
-        .expect("batch get failed")
-        .map(|kv_pair| {
-            let key = kv_pair.0;
+) -> Result<Vec<(String, Vec<u8>)>, Error> {
+    let kv_pairs = transaction.batch_get(keys).await?;
+    let kv_pairs = kv_pairs
+        .map(|pair| {
+            let key = pair.0;
             let key_string: String = String::from_utf8_lossy((&key).into()).to_string();
-            let value = kv_pair.1;
+            let value = pair.1;
             (key_string, value)
         })
-        .collect()
+        .collect();
+    Ok(kv_pairs)
 }
