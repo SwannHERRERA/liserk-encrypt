@@ -310,6 +310,13 @@ mod tests {
         let result = client.query(query).await.unwrap();
         info!("query result {:?}", result);
 
+        match result {
+            Message::QueryResponse { data } => {
+                assert_eq!(data.len(), 4);
+            }
+            _ => assert!(false),
+        }
+
         if let Err(err) = client.terminate_connection().await {
             error!("{:?}", err);
         }

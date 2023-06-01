@@ -25,7 +25,10 @@ pub async fn handle_query(query: Query, tx: Sender<Message>) -> Result<Command, 
             let data = get_by_id(&mut transaction, id, collection).await?;
             Message::SingleValueResponse { data }
         }
-        Query::GetByIds { ids, collection } => todo!(),
+        Query::GetByIds { ids, collection } => {
+            let data = get_by_ids(&mut transaction, ids, collection).await?;
+            message_converter.convert_to_message(data)
+        }
     };
     transaction.commit().await?;
 
@@ -59,6 +62,16 @@ async fn get_by_id(
 ) -> Result<Option<Vec<u8>>, Error> {
     let key = format!("{}:{}", collection, id);
     Ok(client.get(key).await?)
+}
+
+async fn get_by_ids(
+    client: &mut Transaction,
+    ids: Vec<String>,
+    collection: String,
+) -> Result<Vec<KvPair>, Error> {
+    let keys: Vec<String> =
+        ids.iter().map(|id| format!("{}:{}", collection, id)).collect();
+    Ok(client.batch_get(keys).await?.collect())
 }
 
 async fn handle_single_query(
