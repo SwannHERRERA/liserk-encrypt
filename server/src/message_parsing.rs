@@ -1,13 +1,13 @@
 use async_channel::Sender;
 use shared::message::{
-    ClientAuthentication, ClientSetupSecureConnection, Insertion, Message,
+    ClientAuthentication, ClientSetupSecureConnection, Delete, Insertion, Message, Update,
 };
 use shared::query::Query;
 use tracing::debug;
 use tracing::{error, info};
 
 use crate::command::Command;
-use crate::insert;
+use crate::mutation;
 use crate::query_engine;
 
 pub async fn parse_message(message: Message, tx: Sender<Message>) -> Command {
@@ -16,12 +16,35 @@ pub async fn parse_message(message: Message, tx: Sender<Message>) -> Command {
         Message::ClientAuthentification(param) => parse_authentification(param),
         Message::Insert(param) => insert(param, tx).await,
         Message::Query(param) => handle_query(param, tx).await,
+        Message::Update(param) => update(param, tx).await,
+        Message::Delete(param) => delete(param, tx).await,
         Message::EndOfCommunication => end_communication(tx).await,
+        Message::DeleteResult(_) => unreachable!(),
         Message::InsertResponse { .. } => unreachable!(),
         Message::QueryResponse { .. } => unreachable!(),
         Message::SingleValueResponse { .. } => unreachable!(),
         Message::CloseCommunication => unreachable!(),
+        Message::UpdateResponse { .. } => unreachable!(),
     }
+}
+
+async fn update(query: Update, tx: Sender<Message>) -> Command {
+    let status = match mutation::update(query).await {
+        Ok(status) => status,
+        Err(_) => shared::message::UpdateStatus::Failure,
+    };
+    if let Err(err) = tx.send(Message::UpdateResponse { status }).await {
+        error!("err while sending update response: {:?}", err);
+    }
+    Command::Continue
+}
+
+async fn delete(delete: Delete, tx: Sender<Message>) -> Command {
+    let result = mutation::delete(delete).await.unwrap_or(false);
+    if let Err(err) = tx.send(Message::DeleteResult(result)).await {
+        error!("delete message: {:?}", err);
+    }
+    Command::Continue
 }
 
 fn parse_authentification(authentification: ClientAuthentication) -> Command {
@@ -42,7 +65,7 @@ async fn end_communication(tx: Sender<Message>) -> Command {
 }
 
 async fn insert(insertion: Insertion, tx: Sender<Message>) -> Command {
-    match insert::insert(insertion).await {
+    match mutation::insert(insertion).await {
         Ok(inserted_id) => {
             debug!("inserted uuid: {}", inserted_id);
             if let Err(err) = tx.send(Message::InsertResponse { inserted_id }).await {

@@ -16,8 +16,8 @@ pub const BINDED_URL_PORT: &str = "127.0.0.1:5545";
 
 mod command;
 mod config;
-mod insert;
 mod message_parsing;
+mod mutation;
 mod query_engine;
 
 #[derive(Debug, thiserror::Error)]
