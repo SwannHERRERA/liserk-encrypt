@@ -1,11 +1,15 @@
 use config::ConfigError;
 use shared::{
     message::{ClientAuthentication, ClientSetupSecureConnection, Insertion, Message},
-    message_type::MessageTypeError,
+    message_type::{MessageType, MessageTypeError},
     query::Query,
 };
-use tokio::net::{tcp::OwnedReadHalf, TcpStream};
+use tokio::{
+    io::AsyncReadExt,
+    net::{tcp::OwnedReadHalf, TcpStream},
+};
 use tokio::{io::AsyncWriteExt, net::tcp::OwnedWriteHalf};
+use tracing::{debug, info, trace};
 
 #[derive(Debug, thiserror::Error)]
 #[error("...")]
@@ -86,6 +90,8 @@ impl AuthenticatedClient {
         let message = Message::Insert(Insertion { acl, collection, data, usecases });
         let message = message.setup_for_network()?;
         self.write.write_all(&message).await?;
+        let message = parse_message_from_tcp_stream(&mut self.read).await?;
+        info!("message: {:?}", message);
         Ok(())
     }
 
@@ -93,6 +99,29 @@ impl AuthenticatedClient {
         let message = Message::Query(query);
         let message = message.setup_for_network()?;
         self.write.write_all(&message).await?;
+        let message = parse_message_from_tcp_stream(&mut self.read).await?;
+        info!("message: {:?}", message);
         Ok(())
     }
+}
+
+async fn parse_message_from_tcp_stream(
+    stream: &mut OwnedReadHalf,
+) -> Result<Message, Error> {
+    let mut buffer = [0; 1];
+    let _ = stream.read(&mut buffer).await;
+    let message_type = MessageType::try_from(buffer[0]);
+    info!("messageType: {:?}", message_type);
+
+    let mut message_size = [0; 4];
+    let _size_error = stream.read(&mut message_size).await;
+    let decimal_size = u32::from_be_bytes(message_size);
+    trace!("message size: {}", decimal_size);
+
+    let mut slice = vec![0; decimal_size as usize];
+    let _size_read = stream.read_exact(&mut slice).await;
+    trace!("slice: {:?}", slice);
+    let message: Message = serde_cbor::from_slice(&slice)?;
+    debug!("parsed message: {:#?}", message);
+    Ok(message)
 }

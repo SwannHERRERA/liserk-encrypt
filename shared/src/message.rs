@@ -6,9 +6,12 @@ use crate::{message_type::MessageType, query::Query};
 pub enum Message {
     ClientSetup(ClientSetupSecureConnection),
     ClientAuthentification(ClientAuthentication),
-    EndOfCommunication,
     Insert(Insertion),
+    InsertResponse { inserted_id: String },
     Query(Query),
+    QueryResponse { data: Vec<Vec<u8>> },
+    EndOfCommunication,
+    CloseCommunication, // THis is probably a bad idea
 }
 
 impl Message {
@@ -16,9 +19,12 @@ impl Message {
         match self {
             Message::ClientSetup(_) => MessageType::Setup,
             Message::ClientAuthentification(_) => MessageType::Authentification,
-            Message::EndOfCommunication => MessageType::EndOfCommunication,
             Message::Insert(_) => MessageType::Insert,
+            Message::InsertResponse { .. } => MessageType::InsertResponse,
             Message::Query(_) => MessageType::Query,
+            Message::QueryResponse { .. } => MessageType::QueryResponse,
+            Message::EndOfCommunication => MessageType::EndOfCommunication,
+            Message::CloseCommunication => MessageType::CloseCommunication,
         }
     }
 

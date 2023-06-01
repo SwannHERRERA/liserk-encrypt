@@ -1,4 +1,5 @@
 use async_channel::Sender;
+use rayon::prelude::*;
 use shared::{message::Message, query::*};
 use tikv_client::{KvPair, Transaction, TransactionClient};
 use tracing::{debug, info};
@@ -10,7 +11,7 @@ pub async fn handle_query(query: Query, tx: Sender<Message>) -> Result<Command, 
     let client = client.expect("failed to connet to tikv");
     let mut transaction = client.begin_optimistic().await?;
 
-    let x = match query {
+    let data = match query {
         Query::Single(single_query) => {
             handle_single_query(&mut transaction, single_query).await?
         }
@@ -20,10 +21,26 @@ pub async fn handle_query(query: Query, tx: Sender<Message>) -> Result<Command, 
     };
     transaction.commit().await?;
 
-    info!("data found {:?}", x);
-    // Todo send in a channel a message
+    info!("data found {:?}", data);
+    tx.send(MessageConverter::default().convert_to_message(data));
+    // Todo send in a channel a message Ok(Command::Continue)
     Ok(Command::Continue)
 }
+
+trait TokioSender {
+    fn convert_to_bytes(&self, pairs: Vec<KvPair>) -> Vec<Vec<u8>> {
+        pairs.into_par_iter().map(|pair| pair.1).collect()
+    }
+
+    fn convert_to_message(&self, pairs: Vec<KvPair>) -> Message {
+        Message::QueryResponse { data: self.convert_to_bytes(pairs) }
+    }
+}
+
+#[derive(Debug, Default)]
+struct MessageConverter {}
+
+impl TokioSender for MessageConverter {}
 
 async fn handle_single_query(
     client: &mut Transaction,

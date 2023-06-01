@@ -43,8 +43,12 @@ async fn on_new_client(socket: TcpStream, _addr: &SocketAddr) -> Result<(), Erro
 
     tokio::spawn(async move {
         loop {
-            let message = rx.recv().await;
-            let message = message.unwrap().setup_for_network().unwrap();
+            let message = rx.recv().await.expect("failed to recieve message");
+            if message == Message::CloseCommunication {
+                write.shutdown().await.expect("failed to shutdown communication");
+                break;
+            }
+            let message = message.setup_for_network().unwrap();
             write.write(&message).await.unwrap();
         }
     });

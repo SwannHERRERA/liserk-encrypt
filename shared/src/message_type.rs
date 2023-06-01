@@ -8,9 +8,12 @@ use tracing::debug;
 pub enum MessageType {
     Setup,
     Authentification,
-    EndOfCommunication,
     Insert,
+    InsertResponse,
     Query,
+    QueryResponse,
+    EndOfCommunication,
+    CloseCommunication,
 }
 
 impl Display for MessageType {
@@ -18,9 +21,12 @@ impl Display for MessageType {
         match self {
             MessageType::Setup => write!(f, "Setup communcication"),
             MessageType::Authentification => write!(f, "Authentification"),
-            MessageType::EndOfCommunication => write!(f, "EndOfCommunication"),
             MessageType::Insert => write!(f, "Insert"),
+            MessageType::InsertResponse => write!(f, "InsertResponse"),
             MessageType::Query => write!(f, "Query"),
+            MessageType::QueryResponse => write!(f, "QueryResponse"),
+            MessageType::EndOfCommunication => write!(f, "EndOfCommunication"),
+            MessageType::CloseCommunication => write!(f, "CloseCommunication"),
         }
     }
 }
@@ -45,12 +51,24 @@ impl<'de> Deserialize<'de> for MessageType {
             return Ok(MessageType::Insert);
         }
 
-        if s == "EndOfCommunication" {
-            return Ok(MessageType::EndOfCommunication);
+        if s == "InsertResponse" {
+            return Ok(MessageType::InsertResponse);
         }
 
         if s == "Query" {
             return Ok(MessageType::Query);
+        }
+
+        if s == "QueryResponse" {
+            return Ok(MessageType::QueryResponse);
+        }
+
+        if s == "EndOfCommunication" {
+            return Ok(MessageType::EndOfCommunication);
+        }
+
+        if s == "CloseCommunication" {
+            return Ok(MessageType::CloseCommunication);
         }
         panic!("panic deserialize message type");
     }
@@ -67,9 +85,12 @@ impl TryFrom<u8> for MessageType {
         match v {
             0 => Ok(MessageType::Setup),
             1 => Ok(MessageType::Authentification),
-            2 => Ok(MessageType::EndOfCommunication),
-            3 => Ok(MessageType::Insert),
+            2 => Ok(MessageType::Insert),
+            3 => Ok(MessageType::InsertResponse),
             4 => Ok(MessageType::Query),
+            5 => Ok(MessageType::QueryResponse),
+            6 => Ok(MessageType::EndOfCommunication),
+            7 => Ok(MessageType::CloseCommunication),
             _ => Err(MessageTypeError::default()),
         }
     }

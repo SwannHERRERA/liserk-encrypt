@@ -17,6 +17,9 @@ pub async fn parse_message(message: Message, tx: Sender<Message>) -> Command {
         Message::EndOfCommunication => end_communication(tx).await,
         Message::Insert(param) => insert(param, tx).await,
         Message::Query(param) => handle_query(param, tx).await,
+        Message::InsertResponse { .. } => unreachable!(),
+        Message::QueryResponse { .. } => unreachable!(),
+        Message::CloseCommunication => unreachable!(),
     }
 }
 
@@ -31,15 +34,20 @@ fn parse_client_setup(secure_connection_message: ClientSetupSecureConnection) ->
 }
 
 async fn end_communication(tx: Sender<Message>) -> Command {
-    // if let Err(err) = tcp.shutdown().await {
-    //     error!("Error while shutdown: {:#?}", err);
-    // }
+    if let Err(err) = tx.send(Message::CloseCommunication).await {
+        error!("err while shutdown communication: {:?}", err);
+    }
     Command::Exit
 }
 
 async fn insert(insertion: Insertion, tx: Sender<Message>) -> Command {
     match insert::insert(insertion).await {
-        Ok(uuid) => info!("inserted uuid: {}", uuid),
+        Ok(inserted_id) => {
+            debug!("inserted uuid: {}", inserted_id);
+            if let Err(err) = tx.send(Message::InsertResponse { inserted_id }).await {
+                error!("err: {:?}", err);
+            }
+        }
         Err(err) => debug!("{:?}", err),
     }
     Command::Continue
