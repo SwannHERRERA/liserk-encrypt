@@ -13,10 +13,14 @@ pub enum MessageType {
     Query,
     QueryResponse,
     SingleValueResponse,
+    Count,
     Update,
     UpdateResponse,
     Delete,
     DeleteResult,
+    DeleteForUsecase,
+    Drop,
+    DropResult,
     EndOfCommunication,
     CloseCommunication,
 }
@@ -31,10 +35,14 @@ impl Display for MessageType {
             MessageType::Query => write!(f, "Query"),
             MessageType::QueryResponse => write!(f, "QueryResponse"),
             MessageType::SingleValueResponse => write!(f, "SingleValueResponse"),
+            MessageType::Count => todo!(),
             MessageType::Update => write!(f, "Update"),
             MessageType::UpdateResponse => write!(f, "UpdateResponse"),
             MessageType::Delete => write!(f, "Delete"),
             MessageType::DeleteResult => write!(f, "DeleteResult"),
+            MessageType::DeleteForUsecase => write!(f, "DeleteForUsecase"),
+            MessageType::Drop => write!(f, "Drop"),
+            MessageType::DropResult => write!(f, "DropResult"),
             MessageType::EndOfCommunication => write!(f, "EndOfCommunication"),
             MessageType::CloseCommunication => write!(f, "CloseCommunication"),
         }
@@ -77,6 +85,10 @@ impl<'de> Deserialize<'de> for MessageType {
             return Ok(MessageType::SingleValueResponse);
         }
 
+        if s == "Count" {
+            return Ok(MessageType::Count);
+        }
+
         if s == "Update" {
             return Ok(MessageType::Update);
         }
@@ -91,6 +103,18 @@ impl<'de> Deserialize<'de> for MessageType {
 
         if s == "DeleteResult" {
             return Ok(MessageType::DeleteResult);
+        }
+
+        if s == "DeleteForUsecase" {
+            return Ok(MessageType::DeleteForUsecase);
+        }
+
+        if s == "Drop" {
+            return Ok(MessageType::Drop);
+        }
+
+        if s == "DeleteResult" {
+            return Ok(MessageType::DropResult);
         }
 
         if s == "EndOfCommunication" {
@@ -120,12 +144,16 @@ impl TryFrom<u8> for MessageType {
             4 => Ok(MessageType::Query),
             5 => Ok(MessageType::QueryResponse),
             6 => Ok(MessageType::SingleValueResponse),
-            7 => Ok(MessageType::Update),
-            8 => Ok(MessageType::UpdateResponse),
-            9 => Ok(MessageType::Delete),
-            10 => Ok(MessageType::DeleteResult),
-            11 => Ok(MessageType::EndOfCommunication),
-            12 => Ok(MessageType::CloseCommunication),
+            7 => Ok(MessageType::Count),
+            8 => Ok(MessageType::Update),
+            9 => Ok(MessageType::UpdateResponse),
+            10 => Ok(MessageType::Delete),
+            11 => Ok(MessageType::DeleteResult),
+            12 => Ok(MessageType::DeleteForUsecase),
+            13 => Ok(MessageType::Drop),
+            14 => Ok(MessageType::DropResult),
+            15 => Ok(MessageType::EndOfCommunication),
+            16 => Ok(MessageType::CloseCommunication),
             _ => Err(MessageTypeError::default()),
         }
     }

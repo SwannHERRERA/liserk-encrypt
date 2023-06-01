@@ -1,6 +1,7 @@
 use async_channel::Sender;
 use shared::message::{
-    ClientAuthentication, ClientSetupSecureConnection, Delete, Insertion, Message, Update,
+    ClientAuthentication, ClientSetupSecureConnection, CountSubject, Delete, Insertion,
+    Message, Update,
 };
 use shared::query::Query;
 use tracing::debug;
@@ -16,8 +17,11 @@ pub async fn parse_message(message: Message, tx: Sender<Message>) -> Command {
         Message::ClientAuthentification(param) => parse_authentification(param),
         Message::Insert(param) => insert(param, tx).await,
         Message::Query(param) => handle_query(param, tx).await,
+        Message::Count(param) => count(param, tx).await,
         Message::Update(param) => update(param, tx).await,
         Message::Delete(param) => delete(param, tx).await,
+        Message::DeleteForUsecase { collection, id } => todo!(),
+        Message::Drop(_) => todo!(),
         Message::EndOfCommunication => end_communication(tx).await,
         Message::DeleteResult(_) => unreachable!(),
         Message::InsertResponse { .. } => unreachable!(),
@@ -25,7 +29,18 @@ pub async fn parse_message(message: Message, tx: Sender<Message>) -> Command {
         Message::SingleValueResponse { .. } => unreachable!(),
         Message::CloseCommunication => unreachable!(),
         Message::UpdateResponse { .. } => unreachable!(),
+        Message::DropResult(_) => unreachable!(),
+        Message::CountResponse(_) => todo!(),
     }
+}
+
+async fn count(param: CountSubject, tx: Sender<Message>) -> Command {
+    let command = query_engine::count(param, tx).await;
+    if command.is_err() {
+        error!("error in count: {:?}", command.unwrap_err());
+        return Command::Continue;
+    }
+    command.expect("error checked before")
 }
 
 async fn update(query: Update, tx: Sender<Message>) -> Command {

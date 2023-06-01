@@ -10,12 +10,17 @@ pub enum Message {
     Query(Query),
     QueryResponse { data: Vec<Vec<u8>> },
     SingleValueResponse { data: Option<Vec<u8>> },
+    Count(CountSubject),
+    CountResponse(u32), // This is probably a bad idea
     Update(Update),
     UpdateResponse { status: UpdateStatus },
     Delete(Delete),
     DeleteResult(bool),
+    DeleteForUsecase { collection: String, id: String },
+    Drop(DropSubject),
+    DropResult(bool),
     EndOfCommunication,
-    CloseCommunication, // This is probably a bad idea
+    CloseCommunication,
 }
 
 impl Message {
@@ -28,10 +33,15 @@ impl Message {
             Message::Query(_) => MessageType::Query,
             Message::QueryResponse { .. } => MessageType::QueryResponse,
             Message::SingleValueResponse { .. } => MessageType::SingleValueResponse,
+            Message::Count(_) => MessageType::Count,
+            Message::CountResponse(_) => todo!(),
             Message::Update { .. } => MessageType::Update,
             Message::UpdateResponse { .. } => MessageType::UpdateResponse,
             Message::Delete(_) => MessageType::Delete,
             Message::DeleteResult(_) => MessageType::DeleteResult,
+            Message::DeleteForUsecase { .. } => MessageType::DeleteForUsecase,
+            Message::Drop(_) => MessageType::Drop,
+            Message::DropResult(_) => MessageType::DropResult,
             Message::EndOfCommunication => MessageType::EndOfCommunication,
             Message::CloseCommunication => MessageType::CloseCommunication,
         }
@@ -47,6 +57,18 @@ impl Message {
         let message_type_as_bytes = [message_type];
         Ok([&message_type_as_bytes[..], &message_length, &message].concat())
     }
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
+pub enum CountSubject {
+    Collection(String),
+    Usecase { collection: String, usecase: String },
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
+pub enum DropSubject {
+    Collection(String),
+    Usecase { collection: String, usecase: String },
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]

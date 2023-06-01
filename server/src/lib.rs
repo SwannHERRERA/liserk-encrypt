@@ -23,6 +23,7 @@ mod query_engine;
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     TokioIo(#[from] tokio::io::Error),
+    ChannelSend(#[from] async_channel::SendError<Message>),
     Parsing(#[from] serde_cbor::Error),
     Storage(#[from] tikv_client::Error),
 }
@@ -33,6 +34,9 @@ impl Display for Error {
             Error::TokioIo(_) => write!(f, "Tokio IO Error"),
             Error::Parsing(_) => write!(f, "Parsing Error serde"),
             Error::Storage(err) => write!(f, "Error with storage layer {}", err),
+            Error::ChannelSend(sender_error) => {
+                write!(f, "ChannelSenderError {}", sender_error)
+            }
         }
     }
 }

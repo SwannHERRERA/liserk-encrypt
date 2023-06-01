@@ -383,4 +383,9 @@ mod tests {
             error!("{:?}", err);
         }
     }
+
+    #[tokio::test]
+    #[serial]
+    #[ignore = "Count is not finish"]
+    async fn test_count() {}
 }

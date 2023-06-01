@@ -1,6 +1,9 @@
 use async_channel::Sender;
 use rayon::prelude::*;
-use shared::{message::Message, query::*};
+use shared::{
+    message::{CountSubject, Message},
+    query::*,
+};
 use tikv_client::{KvPair, Transaction, TransactionClient};
 use tracing::{debug, error, info};
 
@@ -165,4 +168,33 @@ async fn get_kvpair_from_keys(
         })
         .collect();
     Ok(kv_pairs)
+}
+
+pub async fn count(count: CountSubject, tx: Sender<Message>) -> Result<Command, Error> {
+    let key = match count {
+        CountSubject::Collection(collection) => {
+            format!("{}:keys", collection)
+        }
+        CountSubject::Usecase { collection, usecase } => {
+            format!("{}:{}:usecase", collection, usecase)
+        }
+    };
+    let client = TransactionClient::new(vec![TIKV_URL]).await?;
+    let mut transaction = client.begin_optimistic().await?;
+    let values = transaction.get(key).await?;
+    transaction.commit().await?;
+    let length = compute_length_of_cell(values)?;
+    tx.send(Message::CountResponse(length)).await?;
+    Ok(Command::Continue)
+}
+
+fn compute_length_of_cell(values: Option<Vec<u8>>) -> Result<u32, Error> {
+    if values.is_none() {
+        return Ok(0);
+    }
+    Ok(serde_cbor::from_slice::<Vec<Vec<u8>>>(
+        &values.expect("values is Some check is none before"),
+    )?
+    .iter()
+    .count() as u32)
 }
