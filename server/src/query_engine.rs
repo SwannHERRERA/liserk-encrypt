@@ -1,6 +1,6 @@
 use shared::query::*;
-use tikv_client::{Transaction, TransactionClient};
-use tracing::debug;
+use tikv_client::{KvPair, Transaction, TransactionClient};
+use tracing::{debug, info};
 
 use crate::{command::Command, config::TIKV_URL, Error};
 
@@ -9,15 +9,17 @@ pub async fn handle_query(query: Query) -> Result<Command, Error> {
     let client = client.expect("failed to connet to tikv");
     let mut transaction = client.begin_optimistic().await?;
 
-    match query {
+    let x = match query {
         Query::Single(single_query) => {
-            handle_single_query(&mut transaction, single_query).await?;
+            handle_single_query(&mut transaction, single_query).await?
         }
         Query::Compound(compound_query) => {
-            handle_compound_query(&mut transaction, compound_query).await?;
+            handle_compound_query(&mut transaction, compound_query).await?
         }
-    }
+    };
     transaction.commit().await?;
+
+    info!("data found {:?}", x);
     // Todo send in a channel a message
     Ok(Command::Continue)
 }
@@ -25,18 +27,24 @@ pub async fn handle_query(query: Query) -> Result<Command, Error> {
 async fn handle_single_query(
     client: &mut Transaction,
     single_query: SingleQuery,
-) -> Result<(), Error> {
+) -> Result<Vec<KvPair>, Error> {
     let key = format!("{}:{}:usecase", single_query.collection, single_query.usecase);
+    info!("key: {}", key);
 
     match client.get(key.clone()).await? {
         Some(value) => {
             println!("Got value for key {}: {:?}", key, value);
+            let data_keys: Vec<String> = serde_cbor::from_slice::<Vec<Vec<u8>>>(&value)?
+                .iter()
+                .map(|data_key| String::from_utf8_lossy(data_key).to_string())
+                .collect();
+            Ok(client.batch_get(data_keys).await?.collect())
         }
         None => {
-            println!("No value found for key {}", key);
+            debug!("No value found for key {}", key);
+            Ok(Vec::new())
         }
     }
-    Ok(())
 }
 
 fn retrieve_keys_from_query(compound_query: &CompoundQuery) -> Vec<String> {
@@ -55,7 +63,7 @@ fn retrieve_keys_from_query(compound_query: &CompoundQuery) -> Vec<String> {
 async fn handle_compound_query(
     client: &mut Transaction,
     compound_query: CompoundQuery,
-) -> Result<(), Error> {
+) -> Result<Vec<KvPair>, Error> {
     let keys = retrieve_keys_from_query(&compound_query);
     debug!("keys {:?}", keys);
 
@@ -65,19 +73,32 @@ async fn handle_compound_query(
 
             for (key, value) in values {
                 println!("Got value for key {}: {:?}", key, value);
+                let data_keys: Vec<String> =
+                    serde_cbor::from_slice::<Vec<Vec<u8>>>(&value)?
+                        .iter()
+                        .map(|data_key| String::from_utf8_lossy(data_key).to_string())
+                        .collect();
+                return Ok(client.batch_get(data_keys).await?.collect());
             }
+            debug!("No values found for keys");
+            Ok(Vec::new())
         }
         QueryType::Or => {
             let values = get_kvpair_from_keys(keys, client).await?;
 
             for (key, value) in values {
-                println!("Got value for key {}: {:?}", key, value);
-                return Ok(());
+                debug!("Got value for key {}: {:?}", key, value);
+                let data_keys: Vec<String> =
+                    serde_cbor::from_slice::<Vec<Vec<u8>>>(&value)?
+                        .iter()
+                        .map(|data_key| String::from_utf8_lossy(data_key).to_string())
+                        .collect();
+                return Ok(client.batch_get(data_keys).await?.collect());
             }
-            println!("No values found for keys");
+            debug!("No values found for keys");
+            Ok(Vec::new())
         }
     }
-    Ok(())
 }
 
 async fn get_kvpair_from_keys(

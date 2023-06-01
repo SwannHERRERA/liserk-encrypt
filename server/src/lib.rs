@@ -5,7 +5,7 @@ use std::fmt::Display;
 use std::{io, net::SocketAddr};
 use tokio::io::AsyncReadExt;
 use tokio::net::{TcpListener, TcpStream};
-use tracing::{debug, info};
+use tracing::{debug, info, trace};
 use uuid::Uuid;
 
 use crate::command::Command;
@@ -40,7 +40,7 @@ async fn on_new_client(socket: &mut TcpStream, _addr: &SocketAddr) -> Result<(),
     loop {
         let message = parse_message_from_tcp_stream(socket).await?;
         let command = parse_message(message, socket).await;
-        info!("end with this message");
+        info!("message parsing end communication: {:?}", command);
         if command == Command::Exit {
             break;
         }
@@ -57,11 +57,11 @@ async fn parse_message_from_tcp_stream(stream: &mut TcpStream) -> Result<Message
     let mut message_size = [0; 4];
     let _size_error = stream.read(&mut message_size).await;
     let decimal_size = u32::from_be_bytes(message_size);
-    debug!("{}", decimal_size);
+    trace!("message size: {}", decimal_size);
 
     let mut slice = vec![0; decimal_size as usize];
     let _size_read = stream.read_exact(&mut slice).await;
-    info!("slice: {:?}", slice);
+    trace!("slice: {:?}", slice);
     let message: Message = serde_cbor::from_slice(&slice)?;
     debug!("parsed message: {:#?}", message);
     Ok(message)

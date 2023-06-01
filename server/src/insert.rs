@@ -34,7 +34,6 @@ pub async fn insert(insertion: Insertion) -> Result<String, Error> {
             }
         };
         let bytes = serde_cbor::to_vec(&values)?;
-        info!("bytes {:?}", bytes);
         transaction.put(usecase_key, bytes).await?;
     }
     let commit = transaction.commit().await?;

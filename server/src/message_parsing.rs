@@ -31,11 +31,9 @@ fn parse_client_setup(secure_connection_message: ClientSetupSecureConnection) ->
 }
 
 async fn end_communication(tcp: &mut TcpStream) -> Command {
-    info!("Before shutdown");
     if let Err(err) = tcp.shutdown().await {
         error!("Error while shutdown: {:#?}", err);
     }
-    info!("After shutdown");
     Command::Exit
 }
 
@@ -51,7 +49,7 @@ async fn handle_query(query: Query) -> Command {
     match query_engine::handle_query(query).await {
         Ok(command) => command,
         Err(err) => {
-            eprintln!("{:?}", err);
+            error!("{:?}", err);
             Command::Exit
         }
     }
