@@ -16,5 +16,4 @@ aes-gcm-siv = "0.11.1"
 config = { version = "0.13.3", features = ["toml"] }
 serde = "1.0.163"
 pqcrypto-falcon = "0.2.10"
-tml = "0.2.0"
 toml = "0.7.4"
