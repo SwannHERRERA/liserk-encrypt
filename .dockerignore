@@ -1,0 +1,7 @@
+*
+!Cargo.toml
+!client/
+!server/
+!shared/
+!certificate_authority/
+!test_connection/
