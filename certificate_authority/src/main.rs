@@ -1,87 +1,48 @@
-use aes_gcm_siv::{
-    aead::{generic_array::GenericArray, Aead},
-    Aes256GcmSiv, KeyInit,
-};
-use chrono::{prelude::*, Duration};
-use error::Error;
-use pqc_kyber::*;
-use serde::{Deserialize, Serialize};
-use std::{fs::File, io::Write};
-use uuid::Uuid;
+use std::net::SocketAddr;
 
-use crate::settings::Settings;
+use axum::{http::StatusCode, response::IntoResponse, routing::post, Router};
+use certificate::create_certificate;
+use settings::SETTINGS;
 
+mod certificate;
 mod error;
 mod settings;
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Certificate {
-    pub public_key: Vec<u8>,
-    pub identity_info: String,
-    pub issuer_info: String,
-    pub signature: Vec<u8>,
-    pub valid_from: DateTime<Utc>,
-    pub valid_to: DateTime<Utc>,
-    pub serial_number: Uuid,
-    pub cipher_suits: Vec<String>,
+#[tokio::main]
+async fn main() {
+    let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
+
+    let app = Router::new().nest(
+        "/certificate",
+        Router::new()
+            .route("/create_certificate", post(create_certificate_handler))
+            .route("/verify_certificate", post(verify_certificate_handler)),
+    );
+
+    println!("Listening on {}", addr);
+
+    // Lance le serveur
+    axum::Server::bind(&addr)
+        .serve(app.into_make_service())
+        .await
+        .unwrap();
 }
 
-impl Certificate {
-    fn new(public_key: Vec<u8>) -> Self {
-        let issuer = String::from("Stuga Cloud Certificate Authority");
-        let server = String::from("Server");
-        let now = Utc::now();
-        let end_of_validity = now + Duration::days(365); // care year % 4
-        Certificate {
-            public_key,
-            identity_info: server,
-            issuer_info: issuer,
-            signature: Vec::new(), // TODO: TMP shoud use falcon
-            valid_from: now,
-            valid_to: end_of_validity,
-            serial_number: Uuid::new_v4(),
-            cipher_suits: vec![String::from("kyber768"), String::from("falcon")],
+async fn create_certificate_handler() -> impl IntoResponse {
+    match create_certificate() {
+        Ok(_) => {
+            let certificates_path = &SETTINGS.cipher.certificates_path;
+            let message = format!("Certificate created successfully at {}/certificate.crt and {}/encrypted.kyber", certificates_path, certificates_path);
+            (StatusCode::OK, message)
         }
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Failed to create certificate: {:?}", e),
+        ),
     }
 }
 
-fn main() -> Result<(), Error> {
-    let settings = Settings::new()?;
-    println!("settings: {:?}", settings);
-    let mut rng = rand::thread_rng();
-    let alice_keys = keypair(&mut rng);
-
-    let cipher = Aes256GcmSiv::new(GenericArray::from_slice(&settings.cipher.key));
-
-    let mut nonce = [0u8; 12];
-    rand::thread_rng().fill_bytes(&mut nonce);
-
-    let ciphertext = cipher
-        .encrypt(GenericArray::from_slice(&nonce), alice_keys.secret.as_ref())
-        .expect("encryption failure!");
-
-    let certificate = Certificate::new(alice_keys.public.to_vec());
-    store_certificate(&settings.cipher.certificates_path, certificate)?;
-    store_kyber_private_key(&settings.cipher.certificates_path, ciphertext)?;
-
-    Ok(())
-}
-
-fn store_certificate(path: &String, certificate: Certificate) -> Result<(), Error> {
-    let file_path = format!("{}certificate.crt", path);
-    println!("path file: {}", file_path);
-    let mut file = File::create(file_path)?;
-    let certificate_as_string = toml::to_string(&certificate)?;
-    file.write_all(certificate_as_string.as_bytes())?;
-    Ok(())
-}
-
-//fn store_flacon_private_key() {}
-
-fn store_kyber_private_key(path: &String, ciphertext: Vec<u8>) -> Result<(), Error> {
-    let file_path = format!("{}encrypted.kyber", path);
-    println!("path file: {}", file_path);
-    let mut file = File::create(file_path)?;
-    file.write_all(&ciphertext)?;
-    Ok(())
+async fn verify_certificate_handler() -> impl IntoResponse {
+    // TODO verify cert
+    (StatusCode::OK, "Verification endpoint")
 }

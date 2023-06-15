@@ -1,7 +1,9 @@
 use std::env;
 
 use config::{Config, ConfigError};
+use lazy_static::lazy_static;
 use serde::Deserialize;
+
 #[derive(Debug, Deserialize)]
 #[allow(unused)]
 pub struct Logging {
@@ -33,4 +35,8 @@ impl Settings {
             .build()?;
         settings.try_deserialize()
     }
+}
+
+lazy_static! {
+    pub static ref SETTINGS: Settings = Settings::new().expect("config error");
 }
