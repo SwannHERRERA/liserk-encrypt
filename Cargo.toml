@@ -5,6 +5,7 @@ members = [
   "server",
   "certificate_authority",
   "client",
+  "ope",
   "test_connection",
 ]
 
