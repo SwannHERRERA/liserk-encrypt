@@ -7,36 +7,45 @@ struct ValueRange {
 }
 
 impl ValueRange {
-    fn new (start: f64, end: f64) -> ValueRange {
-
+    fn new(start: f64, end: f64) -> ValueRange {
         if start > end {
             panic!("ValueRange : start value ({}) should not be greater than end value ({}).", start, end);
         }
 
         if start != start.floor() {
-            panic!("ValueRange : start value should be a 0-decimal f64 number. Found {}", start);
+            panic!(
+                "ValueRange : start value should be a 0-decimal f64 number. Found {}",
+                start
+            );
         }
 
         if end != end.floor() {
-            panic!("ValueRange : end value should be a 0-decimal f64 number. Found {}", end);
+            panic!(
+                "ValueRange : end value should be a 0-decimal f64 number. Found {}",
+                end
+            );
         }
 
-        ValueRange { start: start, end: end }
+        ValueRange { start, end }
     }
 
-    fn size (&self) -> f64 {
+    fn size(&self) -> f64 {
         // This function is aimed at returning the number of values
         // in the current ValueRange object
         self.end - self.start + 1.0
     }
 
-    fn contains (&self, number: &f64) -> bool {
+    fn contains(&self, number: &f64) -> bool {
         self.start <= *number && *number <= self.end
     }
 }
 
-fn sample_hgd(in_range: &ValueRange, out_range: &ValueRange, nsample: &f64, seed_coins: &[u8; 32]) -> f64 {
-
+fn sample_hgd(
+    in_range: &ValueRange,
+    out_range: &ValueRange,
+    nsample: &f64,
+    seed_coins: &[u8; 32],
+) -> f64 {
     // Get a sample from the hypergeometric distribution, using the provided bit list (seed coins)
     // as a source of randomness.
 
@@ -58,9 +67,10 @@ fn sample_hgd(in_range: &ValueRange, out_range: &ValueRange, nsample: &f64, seed
     let nsample_index: f64 = nsample - out_range.start + 1_f64;
     if in_size.eq(&out_size) {
         return in_range.start + nsample_index - 1_f64;
-    } 
+    }
 
-    let in_sample_num: f64 = HGD::rhyper(&nsample_index, &in_size, &(out_size - in_size), seed_coins); 
+    let in_sample_num: f64 =
+        HGD::rhyper(&nsample_index, &in_size, &(out_size - in_size), seed_coins);
 
     if in_sample_num == 0_f64 {
         return in_range.start;
@@ -76,7 +86,6 @@ fn sample_hgd(in_range: &ValueRange, out_range: &ValueRange, nsample: &f64, seed
 }
 
 fn sample_uniform(in_range: &ValueRange, seed_coins: &[u8; 32]) -> f64 {
-
     // Uniformly select a number from the range using the provided bit list (seed_coins)
     // as a source of randomness.
 
@@ -88,8 +97,7 @@ fn sample_uniform(in_range: &ValueRange, seed_coins: &[u8; 32]) -> f64 {
 
     let mut bit_counter: usize = 0;
     while current_range.size() > 1_f64 {
-
-        let mid: f64 = (current_range.start + current_range.end).div_euclid(2_f64); 
+        let mid: f64 = (current_range.start + current_range.end).div_euclid(2_f64);
 
         // Check if bit_counter exceeds seed_coins length (32)
         if bit_counter > 31 {
@@ -112,30 +120,29 @@ fn sample_uniform(in_range: &ValueRange, seed_coins: &[u8; 32]) -> f64 {
     current_range.start
 }
 
-
 #[cfg(test)]
 mod tests {
 
-    use super::ValueRange;
     use super::sample_hgd;
     use super::sample_uniform;
+    use super::ValueRange;
 
     mod test_value_range {
 
         use super::ValueRange;
 
-        fn create_value_range (start: f64, end: f64) -> ValueRange {
+        fn create_value_range(start: f64, end: f64) -> ValueRange {
             ValueRange::new(start, end)
         }
 
         #[test]
-        fn test_print_debug () {
+        fn test_print_debug() {
             let range: ValueRange = create_value_range(0.0_f64, 100.0_f64);
             assert_eq!(format!("{:?}", range), "ValueRange { start: 0.0, end: 100.0 }");
         }
 
         #[test]
-        fn test_equal () {
+        fn test_equal() {
             let range_1: ValueRange = create_value_range(0.0_f64, 100.0_f64);
             let range_2: ValueRange = create_value_range(0.0_f64, 100.0_f64);
             assert_eq!(range_1, range_2);
@@ -145,7 +152,7 @@ mod tests {
         }
 
         #[test]
-        fn test_size () {
+        fn test_size() {
             let range: ValueRange = create_value_range(0.0_f64, 100.0_f64);
             assert_eq!(range.size(), 101.0);
 
@@ -154,7 +161,7 @@ mod tests {
         }
 
         #[test]
-        fn test_contains () {
+        fn test_contains() {
             let range: ValueRange = create_value_range(0.0_f64, 100.0_f64);
 
             assert_eq!(range.contains(&0.0_f64), true);
@@ -166,8 +173,7 @@ mod tests {
     }
 
     #[test]
-    fn test_sample_hgd () {
-
+    fn test_sample_hgd() {
         let mut in_range: ValueRange = ValueRange::new(1_f64, 100_f64);
         let mut out_range: ValueRange = ValueRange::new(1_f64, 300_f64);
         let mut seed_coins: [u8; 32] = [1; 32];
@@ -183,7 +189,7 @@ mod tests {
 
         in_range = ValueRange::new(-1_000_f64, 100_000_f64);
         out_range = ValueRange::new(-100_000_f64, 1_000_000_f64);
-        
+
         seed_coins = [0; 32];
         seed_coins[0] = 1_u8;
         seed_coins[2] = 1_u8;
@@ -193,8 +199,7 @@ mod tests {
     }
 
     #[test]
-    fn test_sample_uniform () {
-
+    fn test_sample_uniform() {
         let mut in_range: ValueRange = ValueRange::new(1_f64, 1000_f64);
         let mut seed_coins: [u8; 32] = [1; 32];
 
