@@ -20,7 +20,7 @@ pub async fn parse_message(message: Message, tx: Sender<Message>) -> Command {
         Message::Count(param) => count(param, tx).await,
         Message::Update(param) => update(param, tx).await,
         Message::Delete(param) => delete(param, tx).await,
-        Message::DeleteForUsecase { collection, id } => todo!(),
+        Message::DeleteForUsecase { .. } => todo!(),
         Message::Drop(_) => todo!(),
         Message::EndOfCommunication => end_communication(tx).await,
         Message::DeleteResult(_) => unreachable!(),
