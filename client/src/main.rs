@@ -1,4 +1,4 @@
-use shared::message::{ClientSetupSecureConnection, Message};
+use liserk_shared::message::{ClientSetupSecureConnection, Message};
 use tokio::io::AsyncWriteExt;
 use tokio::net::TcpStream;
 

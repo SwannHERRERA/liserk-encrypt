@@ -1,9 +1,9 @@
 use async_channel::Sender;
-use shared::message::{
+use liserk_shared::message::{
     ClientAuthentication, ClientSetupSecureConnection, CountSubject, Delete, Insertion,
     Message, Update,
 };
-use shared::query::Query;
+use liserk_shared::query::Query;
 use tracing::debug;
 use tracing::{error, info};
 
@@ -46,7 +46,7 @@ async fn count(param: CountSubject, tx: Sender<Message>) -> Command {
 async fn update(query: Update, tx: Sender<Message>) -> Command {
     let status = match mutation::update(query).await {
         Ok(status) => status,
-        Err(_) => shared::message::UpdateStatus::Failure,
+        Err(_) => liserk_shared::message::UpdateStatus::Failure,
     };
     if let Err(err) = tx.send(Message::UpdateResponse { status }).await {
         error!("err while sending update response: {:?}", err);

@@ -1,6 +1,6 @@
 use async_channel::Sender;
 use rayon::prelude::*;
-use shared::{
+use liserk_shared::{shared
     message::{CountSubject, Message},
     query::*,
 };

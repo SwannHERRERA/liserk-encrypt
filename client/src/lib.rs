@@ -1,5 +1,5 @@
 use config::ConfigError;
-use shared::{
+use liserk_shared::{
     message::{
         ClientAuthentication, ClientSetupSecureConnection, Delete, Insertion, Message,
         Update,
