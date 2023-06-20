@@ -1,5 +1,5 @@
 [package]
-name = "client"
+name = "liserk-client"
 version = "0.1.0"
 edition = "2021"
 repository = "https://github.com/SwannHERRERA/liserk-encrypt"
