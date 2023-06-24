@@ -1,4 +1,4 @@
-use shared::message::{Delete, Insertion, Update, UpdateStatus};
+use liserk_shared::message::{Delete, Insertion, Update, UpdateStatus};
 use tikv_client::TransactionClient;
 use tracing::info;
 use uuid::Uuid;

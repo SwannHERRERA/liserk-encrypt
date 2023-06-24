@@ -100,6 +100,10 @@ impl AuthenticatedClient {
         }
     }
 
+    pub async fn insert_ope() -> Result<Message, Error> {
+        todo!()
+    }
+
     pub async fn query(&mut self, query: Query) -> Result<Message, Error> {
         let message = Message::Query(query);
         let message = message.setup_for_network()?;

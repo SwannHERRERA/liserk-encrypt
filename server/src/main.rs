@@ -1,4 +1,4 @@
-use server::run_app;
+use liserk_server::run_app;
 use std::io;
 use tracing::{error, Level};
 use tracing_subscriber::FmtSubscriber;

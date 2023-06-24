@@ -1,9 +1,9 @@
 use async_channel::Sender;
-use rayon::prelude::*;
-use liserk_shared::{shared
+use liserk_shared::{
     message::{CountSubject, Message},
     query::*,
 };
+use rayon::prelude::*;
 use tikv_client::{KvPair, Transaction, TransactionClient};
 use tracing::{debug, error, info};
 
