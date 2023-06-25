@@ -10,8 +10,8 @@ use aes_gcm_siv::{
 use error::{AesError, Error};
 use serde::Serialize;
 
-mod error;
-mod stream;
+pub mod error;
+pub mod stream;
 
 /// Serializes a data structure into a Vec<u8> using CBOR format.
 ///
