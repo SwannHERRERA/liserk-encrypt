@@ -5,24 +5,24 @@ use std::f32::consts::PI as PI_32;
 use std::f64::consts::PI as PI_64;
 use std::f64::EPSILON as EPSILON_64;
 
-struct PRNG {
+pub struct PRNG {
     coins: [u8; 32],
 }
 
 impl PRNG {
-    fn numerify_coins(&self) -> u32 {
+    pub fn numerify_coins(&self) -> u32 {
         let mut out: u32 = 0;
         for bit in self.coins.iter() {
             out = (out << 1) | *bit as u32;
         }
         out
     }
-    fn draw(&self) -> f64 {
+    pub fn draw(&self) -> f64 {
         (self.numerify_coins() as f64) / (2_u64.pow(32) - 1) as f64
     }
 }
 
-fn afc(index: &u32) -> f32 {
+pub fn afc(index: &u32) -> f32 {
     // This function calculates logarithm of i factorial: ln(i!)
     // using Stirling's approximation
     //

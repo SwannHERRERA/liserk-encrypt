@@ -1,4 +1,14 @@
+use std::{
+    fs::File,
+    io::{Read, Write},
+};
+
+use aes_gcm_siv::{
+    aead::{generic_array::GenericArray, Aead, Payload},
+    Aes256GcmSiv, KeyInit,
+};
 use config::ConfigError;
+use liserk_ope::simplified_version::encrypt_ope;
 use liserk_shared::{
     message::{
         ClientAuthentication, ClientSetupSecureConnection, Delete, Insertion, Message,
@@ -21,6 +31,7 @@ pub enum Error {
     ConfigError(#[from] ConfigError),
     SerializationError(#[from] serde_cbor::Error),
     MessageTypeError(#[from] MessageTypeError),
+    EcryptionError(#[from] aes_gcm_siv::Error),
 }
 
 #[derive(Debug, Default)]
@@ -100,8 +111,25 @@ impl AuthenticatedClient {
         }
     }
 
-    pub async fn insert_ope() -> Result<Message, Error> {
-        todo!()
+    pub async fn insert_ope(
+        &mut self,
+        number_to_encrypt: f64,
+        acl: Vec<String>,
+        usecases: Vec<String>,
+        collection: String,
+    ) -> Result<String, Error> {
+        let encrypted_number = encrypt_ope(number_to_encrypt);
+        let data = encrypted_number.to_be_bytes().to_vec();
+
+        let message = Message::InsertOpe(Insertion { acl, collection, data, usecases });
+        let message = message.setup_for_network()?;
+        self.write.write_all(&message).await?;
+        let message = parse_message_from_tcp_stream(&mut self.read).await?;
+        info!("message: {:?}", message);
+        match message {
+            Message::InsertResponse { inserted_id } => Ok(inserted_id),
+            _ => Err(Error::MessageTypeError(MessageTypeError::default())),
+        }
     }
 
     pub async fn query(&mut self, query: Query) -> Result<Message, Error> {
@@ -152,6 +180,39 @@ impl AuthenticatedClient {
             _ => Err(Error::MessageTypeError(MessageTypeError::default())),
         }
     }
+}
+
+pub fn basic_encrypt(
+    key: &[u8; 32],
+    nonce: &[u8; 12],
+    plaintext: &[u8],
+    associated_data: &[u8],
+) -> Result<Vec<u8>, Error> {
+    let cipher = Aes256GcmSiv::new(GenericArray::from_slice(key));
+    let nonce = GenericArray::from_slice(nonce);
+    let payload = Payload { msg: plaintext, aad: associated_data };
+    let ciphertext = cipher.encrypt(nonce, payload)?;
+
+    Ok(ciphertext)
+}
+
+pub fn generate_key() -> [u8; 32] {
+    let mut key = [0u8; 32];
+    getrandom::getrandom(&mut key).expect("Error generating key");
+    key
+}
+
+pub fn save_key_to_file(key: &[u8; 32], file_path: &str) -> std::io::Result<()> {
+    let mut file = File::create(file_path)?;
+    file.write_all(key)?;
+    Ok(())
+}
+
+pub fn load_key_from_file(file_path: &str) -> std::io::Result<[u8; 32]> {
+    let mut file = File::open(file_path)?;
+    let mut key = [0u8; 32];
+    file.read_exact(&mut key)?;
+    Ok(key)
 }
 
 async fn parse_message_from_tcp_stream(

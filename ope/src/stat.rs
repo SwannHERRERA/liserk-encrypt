@@ -1,13 +1,13 @@
 use super::hgd::HGD;
 
 #[derive(Clone, Debug, PartialEq)]
-struct ValueRange {
+pub struct ValueRange {
     start: f64,
     end: f64,
 }
 
 impl ValueRange {
-    fn new(start: f64, end: f64) -> ValueRange {
+    pub fn new(start: f64, end: f64) -> ValueRange {
         if start > end {
             panic!("ValueRange : start value ({}) should not be greater than end value ({}).", start, end);
         }
@@ -29,18 +29,18 @@ impl ValueRange {
         ValueRange { start, end }
     }
 
-    fn size(&self) -> f64 {
+    pub fn size(&self) -> f64 {
         // This function is aimed at returning the number of values
         // in the current ValueRange object
         self.end - self.start + 1.0
     }
 
-    fn contains(&self, number: &f64) -> bool {
+    pub fn contains(&self, number: &f64) -> bool {
         self.start <= *number && *number <= self.end
     }
 }
 
-fn sample_hgd(
+pub fn sample_hgd(
     in_range: &ValueRange,
     out_range: &ValueRange,
     nsample: &f64,
@@ -85,7 +85,7 @@ fn sample_hgd(
     }
 }
 
-fn sample_uniform(in_range: &ValueRange, seed_coins: &[u8; 32]) -> f64 {
+pub fn sample_uniform(in_range: &ValueRange, seed_coins: &[u8; 32]) -> f64 {
     // Uniformly select a number from the range using the provided bit list (seed_coins)
     // as a source of randomness.
 
