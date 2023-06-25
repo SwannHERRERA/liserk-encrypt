@@ -4,6 +4,7 @@ use liserk_shared::{
     query::*,
 };
 use rayon::prelude::*;
+use rug::Float;
 use tikv_client::{KvPair, Transaction, TransactionClient};
 use tracing::{debug, error, info};
 
@@ -87,17 +88,72 @@ async fn handle_single_query(
     match client.get(key.clone()).await? {
         Some(value) => {
             println!("Got value for key {}: {:?}", key, value);
-            let data_keys: Vec<String> = serde_cbor::from_slice::<Vec<Vec<u8>>>(&value)?
-                .iter()
-                .map(|data_key| String::from_utf8_lossy(data_key).to_string())
-                .collect();
-            Ok(client.batch_get(data_keys).await?.collect())
+            let data_keys = extract_data_keys_from_value(value)?;
+            let mut results = fetch_data_from_keys(client, data_keys).await?;
+
+            results = filter_results_by_upper_limit(results, single_query.upper_limit);
+            results = filter_results_by_lower_limit(results, single_query.lower_limit);
+
+            Ok(results)
         }
         None => {
             debug!("No value found for key {}", key);
             Ok(Vec::new())
         }
     }
+}
+
+fn extract_data_keys_from_value(value: Vec<u8>) -> Result<Vec<String>, Error> {
+    let data_keys: Vec<String> = serde_cbor::from_slice::<Vec<Vec<u8>>>(&value)?
+        .iter()
+        .map(|data_key| String::from_utf8_lossy(data_key).to_string())
+        .collect();
+    Ok(data_keys)
+}
+
+async fn fetch_data_from_keys(
+    client: &mut Transaction,
+    data_keys: Vec<String>,
+) -> Result<Vec<KvPair>, Error> {
+    Ok(client.batch_get(data_keys).await?.collect())
+}
+
+fn filter_results_by_upper_limit(
+    mut results: Vec<KvPair>,
+    upper_limit: Option<f64>,
+) -> Vec<KvPair> {
+    if let Some(upper_limit) = upper_limit {
+        let upper_limit = Float::with_val(53, upper_limit); // 53 bits precision (similar to f64)
+        results = results
+            .into_iter()
+            .filter(|kv_pair| {
+                let deserialized_value: f64 =
+                    serde_cbor::from_slice(&kv_pair.1).unwrap_or(0.0);
+                let value_as_float = Float::with_val(53, deserialized_value);
+                value_as_float <= upper_limit
+            })
+            .collect();
+    }
+    results
+}
+
+fn filter_results_by_lower_limit(
+    mut results: Vec<KvPair>,
+    lower_limit: Option<f64>,
+) -> Vec<KvPair> {
+    if let Some(lower_limit) = lower_limit {
+        let lower_limit = Float::with_val(53, lower_limit); // 53 bits precision (similar to f64)
+        results = results
+            .into_iter()
+            .filter(|kv_pair| {
+                let deserialized_value: f64 =
+                    serde_cbor::from_slice(&kv_pair.1).unwrap_or(0.0);
+                let value_as_float = Float::with_val(53, deserialized_value);
+                value_as_float >= lower_limit
+            })
+            .collect();
+    }
+    results
 }
 
 fn retrieve_keys_from_query(compound_query: &CompoundQuery) -> Vec<String> {

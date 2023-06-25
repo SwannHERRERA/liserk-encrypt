@@ -24,4 +24,4 @@ liserk-shared = { path = "../shared" }
 rayon = "1.7.0"
 num_cpus = "1.15.0"
 async-channel = "1.8.0"
-liserk-ope = { path = "../ope/" }
+rug = "1.19.2"

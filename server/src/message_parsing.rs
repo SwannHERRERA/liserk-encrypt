@@ -16,7 +16,7 @@ pub async fn parse_message(message: Message, tx: Sender<Message>) -> Command {
         Message::ClientSetup(param) => parse_client_setup(param),
         Message::ClientAuthentification(param) => parse_authentification(param),
         Message::Insert(param) => insert(param, tx).await,
-        Message::InsertOpe(_) => todo!(),
+        Message::InsertOpe(param) => insert(param, tx).await,
         Message::Query(param) => handle_query(param, tx).await,
         Message::Count(param) => count(param, tx).await,
         Message::Update(param) => update(param, tx).await,

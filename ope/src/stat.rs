@@ -1,3 +1,6 @@
+#![allow(unused_variables)]
+#![allow(dead_code)]
+
 use super::hgd::HGD;
 
 #[derive(Clone, Debug, PartialEq)]

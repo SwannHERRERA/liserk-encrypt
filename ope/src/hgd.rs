@@ -1,3 +1,6 @@
+#![allow(unused_variables)]
+#![allow(dead_code)]
+
 use std::cmp::Ordering;
 
 use std::f32::consts::PI as PI_32;
@@ -96,6 +99,7 @@ impl HGD {
 
         z
     }
+
     fn hypergeometric_hrua(prng: &PRNG, good: &f64, bad: &f64, sample: &f64) -> f64 {
         const D1: f64 = 1.715_527_769_921_413_5;
         const D2: f64 = 0.898_916_162_058_898_8;
@@ -122,6 +126,7 @@ impl HGD {
         // 16 because this is a 16 decimal digit precision in D1 and D2
         let d11: f64 = (m.min(mingoodbad) + 1.0).min((d6 + 16_f64 * d7).round());
 
+        #[allow(unused_assignments)]
         let mut z: f64 = 0.0;
 
         loop {
