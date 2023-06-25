@@ -1,8 +1,8 @@
-use shared::message::{ClientSetupSecureConnection, Message};
+use liserk_shared::message::{ClientSetupSecureConnection, Message};
 use tokio::io::AsyncWriteExt;
 use tokio::net::TcpStream;
 
-use client::Error;
+use liserk_client::Error;
 use pqc_kyber::keypair;
 
 #[tokio::main]

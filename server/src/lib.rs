@@ -1,6 +1,6 @@
+use liserk_shared::message::Message;
+use liserk_shared::message_type::MessageType;
 use serde::{Deserialize, Serialize};
-use shared::message::Message;
-use shared::message_type::MessageType;
 use std::fmt::Display;
 use std::{io, net::SocketAddr};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};

@@ -4,14 +4,16 @@ mod tests {
     use serial_test::serial;
     use std::{assert, sync::Once};
 
-    use shared::query::{CompoundQueryBuilder, Query, QueryType, SingleQueryBuilder};
+    use liserk_shared::query::{
+        CompoundQueryBuilder, Query, QueryType, SingleQueryBuilder,
+    };
     use tracing::{error, info, Level};
     use tracing_subscriber::FmtSubscriber;
 
-    use client::{AuthenticatedClient, UnconnectedClient};
-    use server::BINDED_URL_PORT;
-    use shared::message::Message;
-    use shared::message::UpdateStatus;
+    use liserk_client::{AuthenticatedClient, UnconnectedClient};
+    use liserk_server::BINDED_URL_PORT;
+    use liserk_shared::message::Message;
+    use liserk_shared::message::UpdateStatus;
 
     pub const USERNAME: &str = "Bob";
     pub const PASSWORD: &str = "Pomme";

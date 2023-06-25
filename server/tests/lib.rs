@@ -1,5 +1,5 @@
 use futures::future::join_all;
-use shared::message_type::MessageType;
+use liserk_shared::message_type::MessageType;
 use tokio::io::{self, AsyncWriteExt};
 use tokio::net::TcpStream;
 use tracing::{debug, info, Level};

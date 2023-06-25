@@ -2,6 +2,7 @@
 name = "test_connection"
 version = "0.0.0"
 edition = "2021"
+publish = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -9,9 +10,9 @@ edition = "2021"
 integration-tests = []
 
 [dependencies]
-shared = { path = "../shared" }
-server = { path = "../server" }
-client = { path = "../client" }
+liserk-shared = { path = "../shared" }
+liserk-server = { path = "../server" }
+liserk-client = { path = "../client" }
 tokio = { version = "1.28.1", features = ["full"] }
 tracing = "0.1.37"
 tracing-subscriber = "0.3.17"
