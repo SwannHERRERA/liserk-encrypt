@@ -1,26 +1,77 @@
 use crate::{message_type::MessageType, query::Query};
 use serde::{Deserialize, Serialize};
 
+/// Enum representing different types of messages exchanged between the client and server.
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub enum Message {
+    /// Message sent by the client when setting up a secure connection.
+    /// The associated `ClientSetupSecureConnection` contains the necessary information for establishing the secure connection.
     ClientSetup(ClientSetupSecureConnection),
+
+    /// Message used for client authentication.
+    /// The associated `ClientAuthentication` typically contains the credentials needed for authentication.
     ClientAuthentification(ClientAuthentication),
+
+    /// Used by the client to insert data into the database.
+    /// The `Insertion` structure typically contains the data to be inserted along with metadata such as the collection in which the data should be stored.
     Insert(Insertion),
+
+    /// Similar to `Insert`, but used specifically for inserting data that is encrypted using Order-Preserving Encryption (OPE).
     InsertOpe(Insertion),
+
+    /// Sent by the server in response to an `Insert` message to acknowledge that the data has been inserted.
+    /// Contains the ID of the inserted data.
     InsertResponse { inserted_id: String },
+
+    /// Used by the client to query data from the database.
+    /// The `Query` structure contains the necessary information to perform the data query.
     Query(Query),
+
+    /// Sent by the server in response to a `Query` message.
+    /// Contains the data retrieved as a result of the query.
     QueryResponse { data: Vec<Vec<u8>> },
+
+    /// Sent by the server in response to a query that requests a single value.
+    /// Contains the requested data, or None if it doesn't exist.
     SingleValueResponse { data: Option<Vec<u8>> },
+
+    /// Message sent by the client to request a count of documents that meet certain criteria.
+    /// The `CountSubject` structure defines the criteria for counting.
     Count(CountSubject),
-    CountResponse(u32), // This is probably a bad idea
+
+    /// Sent by the server in response to a `Count` message.
+    /// Contains the number of documents that meet the specified criteria.
+    CountResponse(u32),
+
+    /// Message sent by the client to request an update to existing data.
+    /// The `Update` structure contains the details of what data should be updated and how.
     Update(Update),
+
+    /// Sent by the server in response to an `Update` message to indicate the status of the update operation.
     UpdateResponse { status: UpdateStatus },
+
+    /// Message sent by the client to request the deletion of data.
+    /// The `Delete` structure contains the details of what data should be deleted.
     Delete(Delete),
+
+    /// Sent by the server to indicate the result of a deletion request.
     DeleteResult(bool),
+
+    /// Message sent by the client to delete data for a specific use case.
+    /// Contains the collection name and the ID of the document to be deleted.
     DeleteForUsecase { collection: String, id: String },
+
+    /// Message sent by the client to request the deletion of an entire collection or use case.
+    /// The `DropSubject` structure defines what should be dropped.
     Drop(DropSubject),
+
+    /// Sent by the server to indicate the result of a drop request.
     DropResult(bool),
+
+    /// Message indicating the end of a communication sequence.
     EndOfCommunication,
+
+    /// Message requesting the termination of the communication channel.
     CloseCommunication,
 }
 
