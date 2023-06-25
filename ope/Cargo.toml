@@ -8,3 +8,4 @@ publish = false
 
 [dependencies]
 rand = "0.8"
+rug = "1.19.2"

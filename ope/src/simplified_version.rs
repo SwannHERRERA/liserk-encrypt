@@ -1,34 +1,44 @@
-fn calculate_hypergeometric_sum(length: f64, input_number: f64, probability: f64) -> f64 {
+use rug::Float;
+
+fn calculate_hypergeometric_sum(
+    length: f64,
+    input_number: f64,
+    probability: f64,
+) -> Float {
     if probability <= 0.0 || probability >= 1.0 {
         panic!("Probability must be between 0 and 1.");
     }
 
-    let q = 1.0 - probability;
-    let mean = length * probability;
-    let residual = length * q;
+    let precision = 200; // précision en bits
+    let q = Float::with_val(precision, 1.0) - Float::with_val(precision, probability);
+    let mean =
+        Float::with_val(precision, length) * Float::with_val(precision, probability);
+    let residual = Float::with_val(precision, length) * q;
 
-    let mut numerator = 1.0;
-    let mut factorial = 1.0;
+    let mut numerator = Float::with_val(precision, 1.0);
+    let mut factorial = Float::with_val(precision, 1.0);
     for j in 1..=input_number as i32 {
-        numerator *= (mean + 1.0 - j as f64) * (residual + 1.0 - j as f64);
-        factorial *= j as f64;
+        numerator *= (mean.clone() + 1.0 - Float::with_val(precision, j))
+            * (residual.clone() + 1.0 - Float::with_val(precision, j));
+        factorial *= Float::with_val(precision, j);
     }
 
-    if factorial == 0.0 {
+    if factorial.is_zero() {
         panic!("Factorial is zero, input may be too large.");
     }
 
     let mut hypergeometric_term = numerator / factorial;
-    let mut sum = 0.0;
-    let mut number = input_number;
+    let mut sum = Float::with_val(precision, 0.0);
+    let mut number = Float::with_val(precision, input_number);
 
     for _ in 0..10000 {
-        sum += hypergeometric_term;
+        sum += hypergeometric_term.clone();
 
-        let next_number = number + 1.0;
-        let next_term = (mean - number) * (residual - number)
-            / (next_number)
-            / (mean + residual - next_number - 1.0);
+        let next_number: Float = number.clone() + 1.0;
+        let next_term: Float = (mean.clone() - number.clone())
+            * (residual.clone() - number.clone())
+            / (next_number.clone())
+            / (mean.clone() + residual.clone() - next_number.clone() - 1.0);
         if next_term.is_infinite() || next_term.is_nan() {
             break;
         }
@@ -37,12 +47,12 @@ fn calculate_hypergeometric_sum(length: f64, input_number: f64, probability: f64
         number = next_number;
     }
 
-    let scaling_factor = 1e12;
+    let scaling_factor = Float::with_val(precision, 1e12);
     sum *= scaling_factor;
     sum.floor()
 }
 
-pub fn encrypt_ope(input_number: f64) -> f64 {
+pub fn encrypt_ope(input_number: f64) -> Float {
     const KEY_SPACE_LENGTH: f64 = 16_777_216.0; // Can be any positive value representing the length of the key space
     const PROBABILITY: f64 = 0.5; // A probability, can be any value between 0 and 1
 
@@ -83,13 +93,13 @@ mod tests {
 
     #[test]
     fn test_edge_cases() {
-        let a = 21.0;
-        let b = 32.0;
+        let a = 6_777_216.0;
+        let b = 6_777_215.0;
 
         let encrypted_a = encrypt_ope(a);
         let encrypted_b = encrypt_ope(b);
 
-        assert!(encrypted_a < encrypted_b);
+        assert!(encrypted_a > encrypted_b);
     }
 
     #[test]
