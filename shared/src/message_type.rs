@@ -9,6 +9,7 @@ pub enum MessageType {
     Setup,
     Authentification,
     Insert,
+    InsertOpe,
     InsertResponse,
     Query,
     QueryResponse,
@@ -31,6 +32,7 @@ impl Display for MessageType {
             MessageType::Setup => write!(f, "Setup communcication"),
             MessageType::Authentification => write!(f, "Authentification"),
             MessageType::Insert => write!(f, "Insert"),
+            MessageType::InsertOpe => write!(f, "InsertOpe"),
             MessageType::InsertResponse => write!(f, "InsertResponse"),
             MessageType::Query => write!(f, "Query"),
             MessageType::QueryResponse => write!(f, "QueryResponse"),
@@ -67,6 +69,10 @@ impl<'de> Deserialize<'de> for MessageType {
 
         if s == "Insert" {
             return Ok(MessageType::Insert);
+        }
+
+        if s == "InsertOpe" {
+            return Ok(MessageType::InsertOpe);
         }
 
         if s == "InsertResponse" {
@@ -154,6 +160,7 @@ impl TryFrom<u8> for MessageType {
             14 => Ok(MessageType::DropResult),
             15 => Ok(MessageType::EndOfCommunication),
             16 => Ok(MessageType::CloseCommunication),
+            17 => Ok(MessageType::InsertOpe),
             _ => Err(MessageTypeError::default()),
         }
     }
