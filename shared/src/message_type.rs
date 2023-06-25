@@ -21,10 +21,6 @@ pub enum MessageType {
     DeleteForUsecase,
     Drop,
     DropResult,
-    Update,
-    UpdateResponse,
-    Delete,
-    DeleteResult,
     EndOfCommunication,
     CloseCommunication,
 }
