@@ -16,7 +16,17 @@ use tokio::{
 };
 use tracing::{debug, info, trace};
 
-use crate::error::Error;
+const KEY: [u8; 32] = [0; 32];
+const NONCE: [u8; 12] = [0; 12];
+
+use crate::{basic_decrypt, basic_encrypt, error::Error};
+
+#[derive(Debug)]
+pub enum QueryResult {
+    EmptyResult,
+    SingleValue(Vec<u8>),
+    MultipleValues(Vec<Vec<u8>>),
+}
 
 /// Represents a client that has not yet established a connection to the server.
 #[derive(Debug, Default)]
@@ -132,7 +142,9 @@ impl AuthenticatedClient {
         acl: Vec<String>,
         usecases: Vec<String>,
     ) -> Result<String, Error> {
-        let message = Message::Insert(Insertion { acl, collection, data, usecases });
+        let encrypt_data = basic_encrypt(&KEY, &NONCE, &data)?;
+        let message =
+            Message::Insert(Insertion { acl, collection, data: encrypt_data, usecases });
         let message = message.setup_for_network()?;
         self.write.write_all(&message).await?;
         let message = parse_message_from_tcp_stream(&mut self.read).await?;
@@ -177,15 +189,32 @@ impl AuthenticatedClient {
     /// # Arguments
     ///
     /// * `query` - The query object representing the database query.
-    pub async fn query(&mut self, query: Query) -> Result<Message, Error> {
+    pub async fn query(&mut self, query: Query) -> Result<QueryResult, Error> {
         let message = Message::Query(query);
         let message = message.setup_for_network()?;
         self.write.write_all(&message).await?;
         let message = parse_message_from_tcp_stream(&mut self.read).await?;
         info!("message: {:?}", message);
         match message {
-            Message::QueryResponse { .. } => Ok(message),
-            Message::SingleValueResponse { .. } => Ok(message),
+            Message::QueryResponse { data } => {
+                let mut values = Vec::with_capacity(data.len());
+                for cipher in data {
+                    let value = basic_decrypt(&KEY, &NONCE, &cipher)?;
+                    values.push(value);
+                }
+                Ok(QueryResult::MultipleValues(values))
+            }
+            Message::SingleValueResponse { data } => {
+                if data.is_none() {
+                    return Ok(QueryResult::EmptyResult);
+                }
+                let value = basic_decrypt(
+                    &KEY,
+                    &NONCE,
+                    &data.expect("if is none reutrn empty result"),
+                )?;
+                Ok(QueryResult::SingleValue(value))
+            }
             _ => Err(Error::MessageTypeError(MessageTypeError::default())),
         }
     }
