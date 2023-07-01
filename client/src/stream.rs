@@ -7,6 +7,7 @@ use liserk_shared::{
     message_type::{MessageType, MessageTypeError},
     query::Query,
 };
+use rand::Rng;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::{
@@ -47,6 +48,8 @@ pub struct AuthenticatedClient {
 
     /// The write half of the TCP stream.
     pub write: OwnedWriteHalf,
+
+    pub key: [u8; 32],
 }
 
 impl UnconnectedClient {
@@ -95,6 +98,7 @@ impl ConnectedClient {
         mut self,
         username: String,
         password: String,
+        key: [u8; 32],
     ) -> Result<AuthenticatedClient, Error> {
         let client_authentication = ClientAuthentication { username, password };
         let message = Message::ClientAuthentification(client_authentication);
@@ -103,7 +107,7 @@ impl ConnectedClient {
         self.stream.write_all(&message).await?;
 
         let (read, write) = self.stream.into_split();
-        let auth_client = AuthenticatedClient { read, write };
+        let auth_client = AuthenticatedClient { read, write, key };
         Ok(auth_client)
     }
 }
@@ -133,18 +137,27 @@ impl AuthenticatedClient {
     ///
     /// * `collection` - The name of the collection to insert the data into.
     /// * `data` - The data to be inserted.
+    /// * `associated_data` - The associated data to be verified.
     /// * `acl` - The access control list.
     /// * `usecases` - The use cases associated with the data.
     pub async fn insert(
         &mut self,
         collection: String,
         data: Vec<u8>,
+        associated_data: Vec<u8>,
         acl: Vec<String>,
         usecases: Vec<String>,
     ) -> Result<String, Error> {
-        let encrypt_data = basic_encrypt(&KEY, &NONCE, &data)?;
-        let message =
-            Message::Insert(Insertion { acl, collection, data: encrypt_data, usecases });
+        let encrypt_data = basic_encrypt(&self.key, &NONCE, &data, &associated_data)?;
+        let mut nonce = [0u8; 12];
+        rand::thread_rng().fill(&mut nonce);
+        let message = Message::Insert(Insertion {
+            acl,
+            collection,
+            data: encrypt_data,
+            usecases,
+            nonce,
+        });
         let message = message.setup_for_network()?;
         self.write.write_all(&message).await?;
         let message = parse_message_from_tcp_stream(&mut self.read).await?;
@@ -173,7 +186,8 @@ impl AuthenticatedClient {
         let encrypted_number = encrypt_ope(number_to_encrypt);
         let data = encrypted_number.to_string().as_bytes().to_vec();
 
-        let message = Message::InsertOpe(Insertion { acl, collection, data, usecases });
+        let message =
+            Message::InsertOpe(InsertionOpe { acl, collection, data, usecases });
         let message = message.setup_for_network()?;
         self.write.write_all(&message).await?;
         let message = parse_message_from_tcp_stream(&mut self.read).await?;

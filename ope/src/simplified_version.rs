@@ -54,22 +54,18 @@ fn calculate_hypergeometric_sum(
     sum.floor()
 }
 
-pub fn encrypt_ope(input_number: f64) -> Float {
-    const KEY_SPACE_LENGTH: f64 = 16_777_216.0; // Can be any positive value representing the length of the key space
-    const PROBABILITY: f64 = 0.5; // A probability, can be any value between 0 and 1
+const KEY_SPACE_LENGTH: f64 = 128.0; // Can be any positive value representing the length of the key space
+const PROBABILITY: f64 = 0.5; // A probability, can be any value between 0 and 1
 
+pub fn encrypt_ope(input_number: f64) -> Float {
     calculate_hypergeometric_sum(KEY_SPACE_LENGTH, input_number, PROBABILITY)
 }
 
-pub fn decrypt_ope(
-    encrypted_number: Float,
-    key_space_length: f64,
-    probability: f64,
-) -> Option<f64> {
-    for i in 0..key_space_length as i32 {
+pub fn decrypt_ope(encrypted_number: Float) -> Option<f64> {
+    for i in 0..KEY_SPACE_LENGTH as i32 {
         let input_number = i as f64;
         let result =
-            calculate_hypergeometric_sum(key_space_length, input_number, probability);
+            calculate_hypergeometric_sum(KEY_SPACE_LENGTH, input_number, PROBABILITY);
         let diff = (result - encrypted_number.clone()).abs();
 
         if diff < Float::with_val(200, TOLERANCE) {

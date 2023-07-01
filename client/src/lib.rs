@@ -4,7 +4,7 @@ use std::{
 };
 
 use aes_gcm_siv::{
-    aead::{generic_array::GenericArray, Aead},
+    aead::{generic_array::GenericArray, Aead, Payload},
     Aes256GcmSiv, KeyInit,
 };
 use error::{AesError, Error};
@@ -48,6 +48,7 @@ pub fn deserialize<T: for<'a> Deserialize<'a>>(cbor_data: &Vec<u8>) -> Result<T,
 /// * `key` - A reference to the 256-bit key for encryption.
 /// * `nonce` - A reference to the 12-byte nonce.
 /// * `plaintext` - A reference to the data to be encrypted.
+/// * `associated_data` - A reference to the associated data.
 ///
 /// # Returns
 ///
@@ -56,11 +57,13 @@ pub fn basic_encrypt(
     key: &[u8; 32],
     nonce: &[u8; 12],
     plaintext: &[u8],
+    associated_data: &[u8],
 ) -> Result<Vec<u8>, Error> {
     let cipher = Aes256GcmSiv::new(GenericArray::from_slice(key));
     let nonce = GenericArray::from_slice(nonce);
+    let payload = Payload { msg: plaintext, aad: associated_data };
     let ciphertext = cipher
-        .encrypt(nonce, plaintext)
+        .encrypt(nonce, payload)
         .map_err(|_| Error::EcryptionError(AesError::Encrypt));
 
     ciphertext
@@ -73,6 +76,7 @@ pub fn basic_encrypt(
 /// * `key` - A reference to the 256-bit key for decryption.
 /// * `nonce` - A reference to the 12-byte nonce.
 /// * `ciphertext` - A reference to the encrypted data.
+/// * `associated_data` - A reference to the associated data.
 ///
 /// # Returns
 ///
@@ -81,11 +85,13 @@ pub fn basic_decrypt(
     key: &[u8; 32],
     nonce: &[u8; 12],
     ciphertext: &[u8],
+    associated_data: &[u8],
 ) -> Result<Vec<u8>, Error> {
     let cipher = Aes256GcmSiv::new(GenericArray::from_slice(key));
     let nonce = GenericArray::from_slice(nonce);
+    let payload = Payload { msg: ciphertext, aad: associated_data };
     let plaintext = cipher
-        .decrypt(nonce, ciphertext)
+        .decrypt(nonce, payload)
         .map_err(|_| Error::EcryptionError(AesError::Decrypt));
 
     plaintext
