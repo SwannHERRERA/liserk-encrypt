@@ -1,5 +1,8 @@
 use crate::{message_type::MessageType, query::Query};
 use serde::{Deserialize, Serialize};
+///
+/// QueryOutput is a serialized output of the query
+pub type QueryOutput = (Vec<Vec<u8>>, Option<Vec<Vec<u8>>>);
 
 /// Enum representing different types of messages exchanged between the client and server.
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
@@ -29,11 +32,11 @@ pub enum Message {
 
     /// Sent by the server in response to a `Query` message.
     /// Contains the data retrieved as a result of the query.
-    QueryResponse { data: Vec<Vec<u8>> },
+    QueryResponse(QueryOutput),
 
     /// Sent by the server in response to a query that requests a single value.
     /// Contains the requested data, or None if it doesn't exist.
-    SingleValueResponse { data: Option<Vec<u8>> },
+    SingleValueResponse { data: Option<Vec<u8>>, nonce: Option<Vec<u8>> },
 
     /// Message sent by the client to request a count of documents that meet certain criteria.
     /// The `CountSubject` structure defines the criteria for counting.
@@ -169,6 +172,7 @@ pub struct Insertion {
     pub acl: Vec<String>,
     pub data: Vec<u8>,
     pub usecases: Vec<String>,
+    pub nonce: Vec<u8>,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]

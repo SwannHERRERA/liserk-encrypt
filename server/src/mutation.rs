@@ -16,6 +16,10 @@ pub async fn insert(insertion: Insertion) -> Result<String, Error> {
     let mut transaction = client.begin_optimistic().await?;
     transaction.insert(data_key.clone(), insertion.data).await?;
 
+    let nonce_key = format!("{}:{}:nonce", insertion.collection, unique_id);
+    transaction.insert(nonce_key.clone(), insertion.nonce).await?;
+    info!("nonce_key: {}", nonce_key);
+
     let acl_key = format!("{}:{}:acl", insertion.collection, unique_id);
     let acl_json = serde_cbor::to_vec(&insertion.acl)?;
     transaction.insert(acl_key, acl_json).await?;

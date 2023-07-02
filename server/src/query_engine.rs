@@ -1,14 +1,22 @@
 use async_channel::Sender;
 use liserk_shared::{
-    message::{CountSubject, Message},
+    message::{CountSubject, Message, QueryOutput},
     query::*,
 };
-use rayon::prelude::*;
 use rug::Float;
 use tikv_client::{KvPair, Transaction, TransactionClient};
 use tracing::{debug, error, info};
 
 use crate::{command::Command, config::TIKV_URL, Error};
+
+/// Encrypted data used in Repsonse
+pub type EncryptedData = Vec<KvPair>;
+
+/// Nonces Nonce is used for complexifie AES encryption
+pub type Nonces = Vec<KvPair>;
+
+/// QueryResponse Represent a query
+pub type QueryResponse = (EncryptedData, Option<Nonces>);
 
 pub async fn handle_query(query: Query, tx: Sender<Message>) -> Result<Command, Error> {
     let client = TransactionClient::new(vec![TIKV_URL]).await;
@@ -26,12 +34,13 @@ pub async fn handle_query(query: Query, tx: Sender<Message>) -> Result<Command, 
             message_converter.convert_to_message(data)
         }
         Query::GetById { id, collection } => {
-            let data = get_by_id(&mut transaction, id, collection).await?;
-            Message::SingleValueResponse { data }
+            let (data, nonce) = get_by_id(&mut transaction, id, collection).await?;
+            Message::SingleValueResponse { data, nonce }
         }
         Query::GetByIds { ids, collection } => {
-            let data = get_by_ids(&mut transaction, ids, collection).await?;
-            message_converter.convert_to_message(data)
+            let (data, nonce) = get_by_ids(&mut transaction, ids, collection).await?;
+            let formated = (data, Some(nonce));
+            message_converter.convert_to_message(formated)
         }
     };
     transaction.commit().await?;
@@ -45,12 +54,28 @@ pub async fn handle_query(query: Query, tx: Sender<Message>) -> Result<Command, 
 }
 
 trait TokioSender {
-    fn convert_to_bytes(&self, pairs: Vec<KvPair>) -> Vec<Vec<u8>> {
-        pairs.into_par_iter().map(|pair| pair.1).collect()
+    fn serialize_kv_pairs(pairs: &Vec<KvPair>) -> Vec<Vec<u8>> {
+        let mut serialized_pairs = Vec::new();
+        for pair in pairs.iter() {
+            serialized_pairs.push(pair.1.clone());
+        }
+        serialized_pairs
     }
 
-    fn convert_to_message(&self, pairs: Vec<KvPair>) -> Message {
-        Message::QueryResponse { data: self.convert_to_bytes(pairs) }
+    fn convert_to_output(&self, response: QueryResponse) -> QueryOutput {
+        let (encrypted_data, nonces_option) = response;
+
+        let serialized_encrypted_data = Self::serialize_kv_pairs(&encrypted_data);
+
+        let serialized_nonces =
+            nonces_option.as_ref().map(|nonces| Self::serialize_kv_pairs(&nonces));
+
+        (serialized_encrypted_data, serialized_nonces)
+    }
+
+    fn convert_to_message(&self, response: QueryResponse) -> Message {
+        let output = self.convert_to_output(response);
+        Message::QueryResponse(output)
     }
 }
 
@@ -63,25 +88,31 @@ async fn get_by_id(
     client: &mut Transaction,
     id: String,
     collection: String,
-) -> Result<Option<Vec<u8>>, Error> {
+) -> Result<(Option<Vec<u8>>, Option<Vec<u8>>), Error> {
     let key = format!("{}:{}", collection, id);
-    Ok(client.get(key).await?)
+    let key_nonce = format!("{}:{}:nonce", collection, id);
+    let data = client.get(key).await?;
+    let nonce = client.get(key_nonce).await?;
+    Ok((data, nonce))
 }
 
 async fn get_by_ids(
     client: &mut Transaction,
     ids: Vec<String>,
     collection: String,
-) -> Result<Vec<KvPair>, Error> {
+) -> Result<(Vec<KvPair>, Vec<KvPair>), Error> {
     let keys: Vec<String> =
         ids.iter().map(|id| format!("{}:{}", collection, id)).collect();
-    Ok(client.batch_get(keys).await?.collect())
+    let results = fetch_data_from_keys(client, keys.clone()).await?;
+    let nonces = fetch_nonce_from_keys(client, keys).await?;
+
+    Ok((results, nonces))
 }
 
 async fn handle_single_query(
     client: &mut Transaction,
     single_query: SingleQuery,
-) -> Result<Vec<KvPair>, Error> {
+) -> Result<QueryResponse, Error> {
     let key = format!("{}:{}:usecase", single_query.collection, single_query.usecase);
     info!("key: {}", key);
 
@@ -89,18 +120,29 @@ async fn handle_single_query(
         Some(value) => {
             println!("Got value for key {}: {:?}", key, value);
             let data_keys = extract_data_keys_from_value(value)?;
-            let mut results = fetch_data_from_keys(client, data_keys).await?;
+            let mut results = fetch_data_from_keys(client, data_keys.clone()).await?;
+            if is_ope_query(&single_query) {
+                results =
+                    filter_results_by_upper_limit(results, single_query.upper_limit);
+                results =
+                    filter_results_by_lower_limit(results, single_query.lower_limit);
+            } else {
+                let nonce = fetch_nonce_from_keys(client, data_keys).await?;
 
-            results = filter_results_by_upper_limit(results, single_query.upper_limit);
-            results = filter_results_by_lower_limit(results, single_query.lower_limit);
+                return Ok((results, Some(nonce)));
+            }
 
-            Ok(results)
+            Ok((results, None))
         }
         None => {
             debug!("No value found for key {}", key);
-            Ok(Vec::new())
+            Ok((Vec::new(), None))
         }
     }
+}
+
+fn is_ope_query(query: &SingleQuery) -> bool {
+    query.upper_limit.is_some() || query.lower_limit.is_some()
 }
 
 fn extract_data_keys_from_value(value: Vec<u8>) -> Result<Vec<String>, Error> {
@@ -116,6 +158,15 @@ async fn fetch_data_from_keys(
     data_keys: Vec<String>,
 ) -> Result<Vec<KvPair>, Error> {
     Ok(client.batch_get(data_keys).await?.collect())
+}
+
+async fn fetch_nonce_from_keys(
+    client: &mut Transaction,
+    data_keys: Vec<String>,
+) -> Result<Vec<KvPair>, Error> {
+    let nonce_key: Vec<String> =
+        data_keys.iter().map(|key| key.to_owned() + ":nonce").collect();
+    Ok(client.batch_get(nonce_key).await?.collect())
 }
 
 fn filter_results_by_upper_limit(
@@ -172,7 +223,7 @@ fn retrieve_keys_from_query(compound_query: &CompoundQuery) -> Vec<String> {
 async fn handle_compound_query(
     client: &mut Transaction,
     compound_query: CompoundQuery,
-) -> Result<Vec<KvPair>, Error> {
+) -> Result<(Vec<KvPair>, Option<Vec<KvPair>>), Error> {
     let keys = retrieve_keys_from_query(&compound_query);
     debug!("keys {:?}", keys);
 
@@ -187,10 +238,12 @@ async fn handle_compound_query(
                         .iter()
                         .map(|data_key| String::from_utf8_lossy(data_key).to_string())
                         .collect();
-                return Ok(client.batch_get(data_keys).await?.collect());
+                let data = fetch_data_from_keys(client, data_keys.clone()).await?;
+                let nonce = fetch_nonce_from_keys(client, data_keys).await?;
+                return Ok((data, Some(nonce)));
             }
             debug!("No values found for keys");
-            Ok(Vec::new())
+            Ok((Vec::new(), None))
         }
         QueryType::Or => {
             let values = get_kvpair_from_keys(keys, client).await?;
@@ -202,10 +255,12 @@ async fn handle_compound_query(
                         .iter()
                         .map(|data_key| String::from_utf8_lossy(data_key).to_string())
                         .collect();
-                return Ok(client.batch_get(data_keys).await?.collect());
+                let data = fetch_data_from_keys(client, data_keys.clone()).await?;
+                let nonce = fetch_nonce_from_keys(client, data_keys).await?;
+                return Ok((data, Some(nonce)));
             }
             debug!("No values found for keys");
-            Ok(Vec::new())
+            Ok((Vec::new(), None))
         }
     }
 }

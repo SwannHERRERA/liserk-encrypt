@@ -210,22 +210,23 @@ impl AuthenticatedClient {
         let message = parse_message_from_tcp_stream(&mut self.read).await?;
         info!("message: {:?}", message);
         match message {
-            Message::QueryResponse { data } => {
+            Message::QueryResponse(data, nonces) => {
                 let mut values = Vec::with_capacity(data.len());
-                for cipher in data {
-                    let value = basic_decrypt(&KEY, &NONCE, &cipher)?;
+                for (cipher, nonce) in data.zip(nonces) {
+                    let value = basic_decrypt(&self.key, &nonce, &cipher, &[])?;
                     values.push(value);
                 }
                 Ok(QueryResult::MultipleValues(values))
             }
-            Message::SingleValueResponse { data } => {
+            Message::SingleValueResponse { data, nonce } => {
                 if data.is_none() {
                     return Ok(QueryResult::EmptyResult);
                 }
                 let value = basic_decrypt(
-                    &KEY,
-                    &NONCE,
+                    &self.key,
+                    &nonce,
                     &data.expect("if is none reutrn empty result"),
+                    &[],
                 )?;
                 Ok(QueryResult::SingleValue(value))
             }
