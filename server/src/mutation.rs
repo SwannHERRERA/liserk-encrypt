@@ -1,4 +1,4 @@
-use liserk_shared::message::{Delete, Insertion, Update, UpdateStatus};
+use liserk_shared::message::{Delete, Insertion, InsertionOpe, Update, UpdateStatus};
 use tikv_client::TransactionClient;
 use tracing::info;
 use uuid::Uuid;
@@ -19,6 +19,42 @@ pub async fn insert(insertion: Insertion) -> Result<String, Error> {
     let nonce_key = format!("{}:{}:nonce", insertion.collection, unique_id);
     transaction.insert(nonce_key.clone(), insertion.nonce).await?;
     info!("nonce_key: {}", nonce_key);
+
+    let acl_key = format!("{}:{}:acl", insertion.collection, unique_id);
+    let acl_json = serde_cbor::to_vec(&insertion.acl)?;
+    transaction.insert(acl_key, acl_json).await?;
+
+    for usecase in insertion.usecases {
+        let usecase_key = format!("{}:{}:usecase", insertion.collection, usecase);
+        info!("usecase_key: {}", usecase_key);
+        let values = match transaction.get(usecase_key.clone()).await? {
+            Some(value) => {
+                let mut values: Vec<Vec<u8>> = serde_cbor::from_slice(&value)?;
+                values.push(data_key.clone().into_bytes());
+                values
+            }
+            None => {
+                vec![data_key.clone().into_bytes()]
+            }
+        };
+        let bytes = serde_cbor::to_vec(&values)?;
+        transaction.put(usecase_key, bytes).await?;
+    }
+    let commit = transaction.commit().await?;
+    info!("insert commit: {:?}", commit);
+    Ok(unique_id)
+}
+
+pub async fn insert_ope(insertion: InsertionOpe) -> Result<String, Error> {
+    let client = TransactionClient::new(vec![TIKV_URL]).await?;
+
+    let unique_id = Uuid::new_v4().to_string();
+
+    let data_key = format!("{}:{}", insertion.collection, unique_id);
+    info!("data_key: {}", data_key);
+
+    let mut transaction = client.begin_optimistic().await?;
+    transaction.insert(data_key.clone(), insertion.data).await?;
 
     let acl_key = format!("{}:{}:acl", insertion.collection, unique_id);
     let acl_json = serde_cbor::to_vec(&insertion.acl)?;

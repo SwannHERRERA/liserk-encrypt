@@ -1,7 +1,7 @@
 use async_channel::Sender;
 use liserk_shared::message::{
     ClientAuthentication, ClientSetupSecureConnection, CountSubject, Delete, Insertion,
-    Message, Update,
+    InsertionOpe, Message, Update,
 };
 use liserk_shared::query::Query;
 use tracing::debug;
@@ -16,7 +16,7 @@ pub async fn parse_message(message: Message, tx: Sender<Message>) -> Command {
         Message::ClientSetup(param) => parse_client_setup(param),
         Message::ClientAuthentification(param) => parse_authentification(param),
         Message::Insert(param) => insert(param, tx).await,
-        Message::InsertOpe(param) => insert(param, tx).await,
+        Message::InsertOpe(param) => insert_ope(param, tx).await,
         Message::Query(param) => handle_query(param, tx).await,
         Message::Count(param) => count(param, tx).await,
         Message::Update(param) => update(param, tx).await,
@@ -82,6 +82,19 @@ async fn end_communication(tx: Sender<Message>) -> Command {
 
 async fn insert(insertion: Insertion, tx: Sender<Message>) -> Command {
     match mutation::insert(insertion).await {
+        Ok(inserted_id) => {
+            debug!("inserted uuid: {}", inserted_id);
+            if let Err(err) = tx.send(Message::InsertResponse { inserted_id }).await {
+                error!("err: {:?}", err);
+            }
+        }
+        Err(err) => debug!("{:?}", err),
+    }
+    Command::Continue
+}
+
+async fn insert_ope(insertion: InsertionOpe, tx: Sender<Message>) -> Command {
+    match mutation::insert_ope(insertion).await {
         Ok(inserted_id) => {
             debug!("inserted uuid: {}", inserted_id);
             if let Err(err) = tx.send(Message::InsertResponse { inserted_id }).await {

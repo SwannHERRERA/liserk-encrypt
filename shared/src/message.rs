@@ -20,7 +20,7 @@ pub enum Message {
     Insert(Insertion),
 
     /// Similar to `Insert`, but used specifically for inserting data that is encrypted using Order-Preserving Encryption (OPE).
-    InsertOpe(Insertion),
+    InsertOpe(InsertionOpe),
 
     /// Sent by the server in response to an `Insert` message to acknowledge that the data has been inserted.
     /// Contains the ID of the inserted data.
@@ -173,6 +173,14 @@ pub struct Insertion {
     pub data: Vec<u8>,
     pub usecases: Vec<String>,
     pub nonce: Vec<u8>,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
+pub struct InsertionOpe {
+    pub collection: String,
+    pub acl: Vec<String>,
+    pub data: Vec<u8>,
+    pub usecases: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]

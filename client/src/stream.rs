@@ -1,8 +1,8 @@
 use liserk_ope::simplified_version::encrypt_ope;
 use liserk_shared::{
     message::{
-        ClientAuthentication, ClientSetupSecureConnection, Delete, Insertion, Message,
-        Update,
+        ClientAuthentication, ClientSetupSecureConnection, Delete, Insertion,
+        InsertionOpe, Message, Update,
     },
     message_type::{MessageType, MessageTypeError},
     query::Query,
@@ -16,9 +16,6 @@ use tokio::{
     },
 };
 use tracing::{debug, info, trace};
-
-const KEY: [u8; 32] = [0; 32];
-const NONCE: [u8; 12] = [0; 12];
 
 use crate::{basic_decrypt, basic_encrypt, error::Error};
 
@@ -148,15 +145,15 @@ impl AuthenticatedClient {
         acl: Vec<String>,
         usecases: Vec<String>,
     ) -> Result<String, Error> {
-        let encrypt_data = basic_encrypt(&self.key, &NONCE, &data, &associated_data)?;
         let mut nonce = [0u8; 12];
         rand::thread_rng().fill(&mut nonce);
+        let encrypt_data = basic_encrypt(&self.key, &nonce, &data, &associated_data)?;
         let message = Message::Insert(Insertion {
             acl,
             collection,
             data: encrypt_data,
             usecases,
-            nonce,
+            nonce: nonce.to_vec(),
         });
         let message = message.setup_for_network()?;
         self.write.write_all(&message).await?;
@@ -210,21 +207,26 @@ impl AuthenticatedClient {
         let message = parse_message_from_tcp_stream(&mut self.read).await?;
         info!("message: {:?}", message);
         match message {
-            Message::QueryResponse(data, nonces) => {
+            Message::QueryResponse((data, nonces)) => {
                 let mut values = Vec::with_capacity(data.len());
-                for (cipher, nonce) in data.zip(nonces) {
-                    let value = basic_decrypt(&self.key, &nonce, &cipher, &[])?;
+                for (cipher, nonce) in data.iter().zip(nonces.unwrap()) {
+                    let value = basic_decrypt(
+                        &self.key,
+                        convert_to_array12(&nonce).expect("12 elements"),
+                        &cipher,
+                        &[],
+                    )?;
                     values.push(value);
                 }
                 Ok(QueryResult::MultipleValues(values))
             }
             Message::SingleValueResponse { data, nonce } => {
-                if data.is_none() {
+                if data.is_none() || nonce.is_none() {
                     return Ok(QueryResult::EmptyResult);
                 }
                 let value = basic_decrypt(
                     &self.key,
-                    &nonce,
+                    convert_to_array12(&nonce.expect("Not ope")).expect("12 elements"),
                     &data.expect("if is none reutrn empty result"),
                     &[],
                 )?;
@@ -313,4 +315,13 @@ pub async fn parse_message_from_tcp_stream(
     let message: Message = serde_cbor::from_slice(&slice)?;
     debug!("parsed message: {:#?}", message);
     Ok(message)
+}
+
+fn convert_to_array12(slice: &Vec<u8>) -> Option<&[u8; 12]> {
+    if slice.len() == 12 {
+        let array_ref: &[u8; 12] = slice.as_slice().try_into().unwrap();
+        Some(array_ref)
+    } else {
+        None
+    }
 }
