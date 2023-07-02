@@ -44,3 +44,13 @@ The system use tokio for handiling multiple connection at the same time
 One of the distinguishing features of this project is the implementation of a zero-knowledge database. This means that the server stores the data in such a way that it doesn't know the contents of the data it is storing. This is achieved through encryption and specific protocols that enable the client to interact with their data without exposing it to the server.
 
 This approach is particularly useful for preserving user privacy and ensuring data security, especially in scenarios where the data is sensitive and should not be exposed to even the service provider.
+
+## Some document which are at the origin of the EPO system that is used
+
+- Boldyreva, A., Chenette, N., Lee, Y., & O'Neill, A. (2009). Order-preserving symmetric encryption. In Annual International Conference on the Theory and Applications of Cryptographic Techniques (pp. 224-241). Springer, Berlin, Heidelberg.
+- Popa, R. A., Redfield, C. M., Zeldovich, N., & Balakrishnan, H. (2011, June). CryptDB: protecting confidentiality with encrypted query processing. In Proceedings of the Twenty-Third ACM Symposium on Operating Systems Principles (pp. 85-100).
+- Roche, D. S., Aviv, A. J., & Choi, S. G. (2017). A practical, targeted, and stealthy attack against WPA enterprise authentication. In NDSS.
+- Naveed, M., Kamara, S., & Wright, C. V. (2015, October). Inference attacks on property-preserving encrypted databases. In Proceedings of the 22nd ACM SIGSAC Conference on Computer and Communications Security (pp. 644-655).
+- Kerschbaum, F. (2007, April). Frequency-hiding order-preserving encryption. In Proceedings of the 2007 ACM workshop on Privacy in electronic society (pp. 47-51).
+- Boneh, D., Lewi, K., & Wu, D. J. (2015). Order-preserving encryption from lattices. In Annual International Conference on the Theory and Applications of Cryptographic Techniques (pp. 172-193). Springer, Berlin, Heidelberg.
+

@@ -3,6 +3,7 @@ name = "liserk-client"
 version = "0.2.2"
 edition = "2021"
 repository = "https://github.com/SwannHERRERA/liserk-encrypt"
+readme = "../README.md"
 license-file = "../LICENSE"
 description = "Client for liserk zero knowledge database"
 
