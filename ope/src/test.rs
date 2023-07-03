@@ -1,6 +1,9 @@
 use crate::test_stats::{sample_hgd, sample_uniform};
-use aes::Aes256;
-use hmac::{Hmac, Mac, NewMac};
+use aes::{
+    cipher::{generic_array::GenericArray, KeyInit},
+    Aes128, Aes256,
+};
+use hmac::{Hmac, Ma, Mac};
 use sha2::Sha256;
 
 type AesCtr = Ctr128<Aes256, Pkcs7>;
@@ -114,50 +117,23 @@ impl Ope {
         // You'll need to implement the recursive decryption logic here,
         // which is similar to encrypt_recursive but works for decryption.
     }
-    fn tape_gen(&self, data: &str) -> impl Iterator<Item = bool> {
-        let mut hmac =
-            Hmac::new(MessageDigest::sha256(), self.key).expect("Failed to create HMAC");
-
-        hmac.update(data.as_bytes());
-
-        assert_eq!(hmac.size(), 32, "HMAC digest size must be 32 bytes");
-
-        let digest = hmac.finalize().into_bytes();
-
-        let aes = Aes256::new(&digest);
-        let mut ctr = Ctr128::<Aes256, NoPadding>::new(aes, &vec![0; 16]);
-
-        let mut buffer = vec![0; 16];
-
-        std::iter::from_fn(move || {
-            ctr.encrypt(&mut buffer, 16);
-
-            let mut bits = Vec::new();
-            for byte in buffer.iter() {
-                for i in 0..8 {
-                    bits.push((byte >> i) & 1 == 1);
-                }
-            }
-
-            if let Some(bit) = bits.pop() {
-                Some(bit)
-            } else {
-                None
-            }
-        })
-    }
     fn tape_gen(&self, data: i32) -> Result<Vec<u8>, OpeError> {
         let data = data.to_le_bytes();
-        let mut hmac = Hmac::<Sha256>::new_from_slice(&self.key).unwrap();
+
+        let mut hmac = <&[u8] as Mac>::new_from_slice(&self.key).unwrap();
         hmac.update(&data);
         let result = hmac.finalize().into_bytes();
-        todo!()
 
-        // The next steps involve using AES in CTR mode to generate a pseudo-random bit string
-        // which is similar to what the Python code is doing. You can use the `aes` and `block-modes`
-        // crate for this purpose.
+        // Use AES in the CTR mode to generate a pseudo-random bit string
+        type AesCtr = Ctr128<Aes128>;
+        let cipher = Aes128::new(GenericArray::from_slice(&result[..16])); // Use the first 128 bits of the HMAC result
+        let counter = GenericArray::from_slice(&[0u8; 16]); // Start counter from all 0s
+        let mut block_mode = AesCtr::new(cipher, counter);
 
-        // ... rest of tape_gen implementation
+        let mut buffer = [0u8; 16]; // A buffer to encrypt and generate random bytes
+        block_mode.encrypt(&mut buffer, 16); // Encrypt in-place
+
+        Ok(buffer.to_vec())
     }
 }
 

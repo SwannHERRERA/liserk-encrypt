@@ -1,5 +1,6 @@
 use std::iter::Iterator;
 
+use crate::hgd::rhyper;
 use crate::test::ValueRange;
 
 pub fn sample_hgd(
@@ -24,12 +25,8 @@ pub fn sample_hgd(
 
     // Placeholder for sampling from the hypergeometric distribution.
     // Replace this with a call to an actual statistical library.
-    let in_sample_num = your_hypergeometric_function(
-        nsample_index,
-        in_size,
-        out_size - in_size,
-        seed_coins,
-    );
+    let in_sample_num =
+        rhyper(nsample_index, in_size as f64, (out_size - in_size) as f64, seed_coins);
 
     if in_sample_num == 0 {
         in_range.start
