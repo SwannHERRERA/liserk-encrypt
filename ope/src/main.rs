@@ -2,9 +2,7 @@ use crate::simplified_version::decrypt_ope;
 
 use crate::simplified_version::encrypt_ope;
 
-mod hgd;
 mod simplified_version;
-mod stat;
 
 fn main() {
     let number_to_encrypt = 12.0;

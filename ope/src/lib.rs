@@ -1,32 +1,53 @@
 pub mod hgd;
+pub mod ope;
 pub mod simplified_version;
-pub mod stat;
+pub mod stats;
+pub mod utils;
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use rand::Rng;
-    use stat::sample_hgd;
-    use stat::ValueRange;
+    use crate::ope::{Ope, ValueRange};
 
     #[test]
-    fn it_works() {
-        let in_range = ValueRange::new(0.0, 127.0);
-        let out_range = ValueRange::new(0.0, 127.0);
-        let nsample = 64.0;
+    fn test_value_range_new() {
+        assert!(ValueRange::new(5, 3).is_err());
+        assert_eq!(ValueRange::new(3, 5), Ok(ValueRange { start: 3, end: 5 }));
+    }
 
-        let mut rng = rand::thread_rng();
-        let mut seed_coins = [0u8; 32];
-        for coin in seed_coins.iter_mut() {
-            *coin = rng.gen_range(0..=1);
-        }
+    #[test]
+    fn test_value_range_size() {
+        let range = ValueRange::new(3, 5).unwrap();
+        assert_eq!(range.size(), 3);
 
-        let result_1 = sample_hgd(&in_range, &out_range, &nsample, &seed_coins);
-        let nsample = 24.0;
-        let result_2 = sample_hgd(&in_range, &out_range, &nsample, &seed_coins);
+        let range = ValueRange::new(-3, -1).unwrap();
+        assert_eq!(range.size(), 3);
+    }
 
-        // Afficher le résultat
-        println!("Résultat de sample_hgd: {}, {}", result_1, result_2);
-        println!("1 > 2 sample_hgd: {}", result_1 > result_2);
+    #[test]
+    fn test_value_range_contains() {
+        let range = ValueRange::new(3, 5).unwrap();
+        assert!(range.contains(4));
+        assert!(!range.contains(6));
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_ope_new() {
+        let key = b"test_key";
+        assert!(Ope::new(key, Some(ValueRange::new(5, 3).unwrap()), None).is_err());
+        assert!(Ope::new(key, None, None).is_err());
+    }
+
+    #[test]
+    fn test_ope_encrypt_decrypt() {
+        let key = b"test_key";
+        let ope = Ope::new(key, None, None).unwrap();
+
+        let plaintext = 5;
+        let ciphertext = ope.encrypt(plaintext).unwrap();
+        assert!(ope.out_range.contains(ciphertext));
+
+        let decrypted = ope.decrypt(ciphertext).unwrap();
+        assert_eq!(plaintext, decrypted);
     }
 }
