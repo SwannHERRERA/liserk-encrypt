@@ -50,4 +50,29 @@ mod tests {
         let decrypted = ope.decrypt(ciphertext).unwrap();
         assert_eq!(plaintext, decrypted);
     }
+
+    #[test]
+    fn test_ope_order_preserving_encryption() {
+        let key = b"test_key";
+        let ope = Ope::new(key, None, None).unwrap();
+
+        let mut plaintexts = vec![3, 1, 4, 5, 9, 2, 6, 5];
+        let mut ciphertexts = Vec::new();
+
+        // Encrypt each plaintext value
+        for &plaintext in plaintexts.iter() {
+            let ciphertext = ope.encrypt(plaintext).unwrap();
+            ciphertexts.push(ciphertext);
+        }
+
+        // Sort both plaintexts and ciphertexts
+        plaintexts.sort();
+        ciphertexts.sort();
+
+        // Check if the order is preserved
+        for (index, &plaintext) in plaintexts.iter().enumerate() {
+            let original_ciphertext = ope.encrypt(plaintext).unwrap();
+            assert_eq!(original_ciphertext, ciphertexts[index]);
+        }
+    }
 }
