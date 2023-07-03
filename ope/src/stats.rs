@@ -1,13 +1,14 @@
+use std::cell::RefCell;
 use std::iter::Iterator;
 
-use crate::hgd::rhyper;
-use crate::test::ValueRange;
+use crate::hgd::{rhyper, Coins};
+use crate::ope::ValueRange;
 
 pub fn sample_hgd(
     in_range: ValueRange,
     out_range: ValueRange,
     nsample: i32,
-    seed_coins: &mut impl Iterator<Item = i32>,
+    seed_coins: Box<dyn Iterator<Item = bool> + 'static>,
 ) -> i32 {
     let in_size = in_range.size();
     let out_size = out_range.size();
@@ -23,8 +24,7 @@ pub fn sample_hgd(
         return in_range.start + nsample_index - 1;
     }
 
-    // Placeholder for sampling from the hypergeometric distribution.
-    // Replace this with a call to an actual statistical library.
+    let seed_coins: Coins = Box::new(seed_coins);
     let in_sample_num =
         rhyper(nsample_index, in_size as f64, (out_size - in_size) as f64, seed_coins);
 
@@ -39,18 +39,20 @@ pub fn sample_hgd(
 
 pub fn sample_uniform(
     in_range: ValueRange,
-    seed_coins: &mut impl Iterator<Item = i32>,
+    seed_coins: Box<RefCell<dyn Iterator<Item = bool> + 'static>>,
 ) -> i32 {
     let mut cur_range = in_range;
     assert!(cur_range.size() != 0, "Range size must not be zero");
 
+    let mut seed_coins_ref_mut = seed_coins.borrow_mut();
+
     while cur_range.size() > 1 {
         let mid = (cur_range.start + cur_range.end) / 2;
-        match seed_coins.next() {
-            Some(0) => cur_range.end = mid,
-            Some(1) => cur_range.start = mid + 1,
+        match seed_coins_ref_mut.next() {
+            // Utilisez cette référence mutable ici
+            Some(false) => cur_range.end = mid,
+            Some(true) => cur_range.start = mid + 1,
             None => panic!("Not enough coins"),
-            _ => panic!("Invalid coin"),
         }
     }
 

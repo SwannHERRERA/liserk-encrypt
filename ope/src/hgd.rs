@@ -77,7 +77,7 @@ fn loggam(x: f64) -> f64 {
 
     let mut gl = gl0 / x0 + 0.5 * xp.ln() + (x0 - 0.5) * x0.ln() - x0;
     if x <= 7.0 {
-        for k in 1..=n {
+        for _k in 1..=n {
             gl -= (x0 - 1.0).ln();
             x0 -= 1.0;
         }
@@ -86,7 +86,7 @@ fn loggam(x: f64) -> f64 {
 }
 
 pub fn hypergeometric_hyp(prng: &mut PRNG, good: f64, bad: f64, sample: f64) -> i32 {
-    let mut d1 = bad + good - sample;
+    let d1 = bad + good - sample;
     let d2 = f64::min(bad, good);
 
     let mut y = d2;
@@ -171,7 +171,9 @@ pub fn hypergeometric_hrua(prng: &mut PRNG, good: f64, bad: f64, sample: f64) ->
     }
 }
 
-pub fn rhyper(kk: i32, nn1: f64, nn2: f64, coins: Box<dyn Iterator<Item = bool>>) -> i32 {
+pub type Coins = Box<dyn Iterator<Item = bool> + 'static>;
+
+pub fn rhyper(kk: i32, nn1: f64, nn2: f64, coins: Coins) -> i32 {
     let mut prng = PRNG::new(coins);
 
     if kk > 10 {
