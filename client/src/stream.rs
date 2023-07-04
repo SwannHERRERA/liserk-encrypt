@@ -209,7 +209,7 @@ impl AuthenticatedClient {
         match message {
             Message::QueryResponse((data, nonces)) => {
                 let mut values = Vec::with_capacity(data.len());
-                for (cipher, nonce) in data.iter().zip(nonces.unwrap()) {
+                for (cipher, nonce) in data.iter().zip(nonces.unwrap().iter()) {
                     let value = basic_decrypt(
                         &self.key,
                         convert_to_array12(&nonce).expect("12 elements"),

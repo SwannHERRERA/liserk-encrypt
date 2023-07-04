@@ -3,7 +3,7 @@ name = "liserk-ope"
 version = "0.2.0"
 edition = "2021"
 repository = "https://github.com/SwannHERRERA/liserk-encrypt"
-readme = "../README.md"
+readme = "./readme.md"
 license-file = "../LICENSE"
 description = "OPE (order preserving encryption) algorithms for liserk zero knowledge database"
 
