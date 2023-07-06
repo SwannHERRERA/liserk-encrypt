@@ -88,12 +88,12 @@ impl Ope {
 
         if in_range.size() == 1 {
             let coins = RefCell::new(self.tape_gen(plaintext));
-            let ciphertext = sample_uniform(out_range, Box::new(coins)); // sample_uniform needs to be implemented
+            let ciphertext = sample_uniform(out_range, Box::new(coins));
             return Ok(ciphertext);
         }
 
         let coins = self.tape_gen(mid);
-        let x = sample_hgd(in_range, out_range, mid, Box::new(coins)); // sample_hgd needs to be implemented
+        let x = sample_hgd(in_range, out_range, mid, Box::new(coins));
 
         if plaintext <= x {
             in_range = ValueRange::new(in_edge + 1, x)?;

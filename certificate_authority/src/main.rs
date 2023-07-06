@@ -1,3 +1,5 @@
+extern crate pqcrypto_falcon;
+
 use std::net::SocketAddr;
 
 use axum::{http::StatusCode, response::IntoResponse, routing::post, Router};
@@ -11,7 +13,6 @@ mod settings;
 #[tokio::main]
 async fn main() {
     let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
-
     let app = Router::new().nest(
         "/certificate",
         Router::new()

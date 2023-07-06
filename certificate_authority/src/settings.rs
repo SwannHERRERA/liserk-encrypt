@@ -13,8 +13,9 @@ pub struct Logging {
 #[derive(Debug, Deserialize)]
 #[allow(unused)]
 pub struct Cipher {
-    pub key: Vec<u8>,
+    pub aes_key: Vec<u8>,
     pub certificates_path: String,
+    pub falcon_secret_key: Vec<u8>,
 }
 
 #[derive(Debug, Deserialize)]

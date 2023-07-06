@@ -26,7 +26,7 @@ Include this crate in your Rust project by adding the following in your `Cargo.t
 
 ```toml
 [dependencies]
-ope_project = { path = "path_to_this_project" }
+liserk-ope: "0.2"
 ```
 
 Then you can use the OPE library in your code like this:
@@ -57,7 +57,7 @@ Contributions to this project are welcome. If you find a bug or think of a new f
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](../LICENSE) file for details.
 
 ## Acknowledgements
 This project is developed and maintained by contributors who are passionate about security and cryptography. Special thanks to everyone who has contributed to making this project possible.

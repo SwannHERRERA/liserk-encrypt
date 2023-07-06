@@ -53,4 +53,4 @@ This approach is particularly useful for preserving user privacy and ensuring da
 - Naveed, M., Kamara, S., & Wright, C. V. (2015, October). Inference attacks on property-preserving encrypted databases. In Proceedings of the 22nd ACM SIGSAC Conference on Computer and Communications Security (pp. 644-655).
 - Kerschbaum, F. (2007, April). Frequency-hiding order-preserving encryption. In Proceedings of the 2007 ACM workshop on Privacy in electronic society (pp. 47-51).
 - Boneh, D., Lewi, K., & Wu, D. J. (2015). Order-preserving encryption from lattices. In Annual International Conference on the Theory and Applications of Cryptographic Techniques (pp. 172-193). Springer, Berlin, Heidelberg.
-
+- Falcon [https://falcon-sign.info/falcon.pdf](https://falcon-sign.info/falcon.pdf)

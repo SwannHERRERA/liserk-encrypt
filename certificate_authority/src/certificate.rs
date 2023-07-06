@@ -5,6 +5,7 @@ use aes_gcm_siv::{
 };
 use chrono::{prelude::*, Duration};
 use pqc_kyber::*;
+use pqcrypto_falcon::falcon512;
 use serde::{Deserialize, Serialize};
 use std::{fs::File, io::Write};
 use uuid::Uuid;
@@ -21,6 +22,11 @@ pub struct Certificate {
     pub cipher_suits: Vec<String>,
 }
 
+fn as_bytes<T>(input: &T) -> &[u8] {
+    let ptr = input as *const T as *const u8;
+    unsafe { std::slice::from_raw_parts(ptr, std::mem::size_of::<T>()) }
+}
+
 impl Certificate {
     /// care year % 4 BUT
     fn new(public_key: Vec<u8>) -> Self {
@@ -28,11 +34,15 @@ impl Certificate {
         let server = String::from("Server");
         let now = Utc::now();
         let end_of_validity = now + Duration::days(365);
+        let (_falcon_public_key, secret_key) = falcon512::keypair();
+        let sign = falcon512::sign(&public_key, &secret_key);
+        let sign_as_bytes = as_bytes(&sign);
+
         Certificate {
             public_key,
             identity_info: server,
             issuer_info: issuer,
-            signature: Vec::new(), // TODO: TMP shoud use falcon
+            signature: sign_as_bytes.to_vec(),
             valid_from: now,
             valid_to: end_of_validity,
             serial_number: Uuid::new_v4(),
@@ -45,7 +55,7 @@ pub fn create_certificate() -> Result<(), Error> {
     let mut rng = rand::thread_rng();
     let alice_keys = keypair(&mut rng);
 
-    let cipher = Aes256GcmSiv::new(GenericArray::from_slice(&SETTINGS.cipher.key));
+    let cipher = Aes256GcmSiv::new(GenericArray::from_slice(&SETTINGS.cipher.aes_key));
 
     let mut nonce = [0u8; 12];
     rand::thread_rng().fill_bytes(&mut nonce);
