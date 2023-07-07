@@ -7,7 +7,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-tikv-client = { git = "https://github.com/SwannHERRERA/client-rust", tag = "0.1.1" }
+tikv-client = { git = "https://github.com/SwannHERRERA/client-rust", tag = "0.2.1" }
 tokio = { version = "1.28", features = ["full"] }
 config = "0.13.3"
 serde = { version = "1.0.163", features = ["derive"] }
