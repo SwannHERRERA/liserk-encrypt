@@ -11,7 +11,7 @@ description = "Client for liserk zero knowledge database"
 
 [dependencies]
 config = "0.13.3"
-pqc_kyber = "0.6.0"
+pqc_kyber = "0.7.1"
 rand = "0.8.5"
 serde = { version = "1.0.163", features = ["derive"] }
 serde_cbor = "0.11.2"
