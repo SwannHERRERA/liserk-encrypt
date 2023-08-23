@@ -11,7 +11,7 @@ description = "certificate authority for kyber encryption"
 [dependencies]
 chrono = { version = "0.4.24", features = ["serde"] }
 color-eyre = "0.6.2"
-pqc_kyber = "0.6.0"
+pqc_kyber = "0.7.1"
 rand = "0.8.5"
 thiserror = "1.0.40"
 uuid = { version = "1.3.3", features = ["v4", "serde"] }
